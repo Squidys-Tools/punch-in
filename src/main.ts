@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import React from 'react';
 import { render } from 'ink';
-import { start, status, stop } from './commands.js';
+import { goal, start, status, stop } from './commands.js';
 import { App } from './views.js';
 
 const VERSION = '0.1.0';
@@ -14,6 +14,7 @@ Commands:
   in [PROJECT]   Punch in: start tracking time on a project (defaults to "general")
   out            Punch out: stop the active session and record it
   status         Show the active session and elapsed time
+  goal [HOURS]   Show or set the daily goal (e.g. "punch goal 6" for 6 hours)
   help           Print this help
 
 Options:
@@ -61,6 +62,11 @@ function main(): void {
     }
     case 'status': {
       printResult(status());
+      return;
+    }
+    case 'goal': {
+      const raw = args[1];
+      printResult(goal(raw === undefined ? null : Number(raw)));
       return;
     }
     case 'help':

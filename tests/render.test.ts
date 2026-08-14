@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import React from 'react';
+import { render as inkRender } from 'ink';
 import { render } from 'ink-testing-library';
+import { EventEmitter } from 'node:events';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { App, Shell, type Design } from '../src/views.js';
-import type { Store } from '../src/store.js';
+import { DEFAULT_GOAL_SECS, type Store } from '../src/store.js';
 
 let dir: string;
 
@@ -43,6 +45,7 @@ function fakeStore(): Store {
   return {
     active: { project: 'tui', started_at: new Date(now.getTime() - 5 * 60 * 1000) },
     history,
+    goal_secs: DEFAULT_GOAL_SECS,
   };
 }
 
@@ -54,8 +57,43 @@ async function flush(ms = 25): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+class FakeStdin extends EventEmitter {
+  isTTY = true;
+  data: unknown = null;
+  write(data: unknown) {
+    this.data = data;
+    this.emit('readable');
+    this.emit('data', data);
+  }
+  setEncoding() {}
+  setRawMode() {}
+  resume() {}
+  pause() {}
+  ref() {}
+  unref() {}
+  read() {
+    const { data } = this;
+    this.data = null;
+    return data;
+  }
+}
+
+class FakeStdout extends EventEmitter {
+  isTTY = true;
+  get columns() {
+    return 100;
+  }
+  get rows() {
+    return 30;
+  }
+  frames: string[] = [];
+  write = (frame: string) => {
+    this.frames.push(frame);
+  };
+}
+
 describe('design previews', () => {
-  const designs: Design[] = ['minimal', 'today-line', 'session-list', 'goal-ring'];
+  const designs: Design[] = ['minimal', 'goal-ring'];
 
   for (const design of designs) {
     test(`${design} renders without panicking`, () => {
@@ -64,6 +102,7 @@ describe('design previews', () => {
           store: fakeStore(),
           design,
           mode: 'normal',
+          prompt: 'project',
           input: '',
           status: null,
         }),
@@ -90,7 +129,7 @@ describe('App interaction', () => {
     const frame = instance.lastFrame() ?? '';
     instance.unmount();
 
-    expect(frame).toContain('design: today-line');
+    expect(frame).toContain('design: goal-ring');
   });
 
   test('i enters input mode and enter starts a session', async () => {
@@ -130,5 +169,46 @@ describe('App interaction', () => {
 
     expect(frame).toContain('stopped');
     expect(frame).toContain("'web'");
+  });
+
+  test('g enters goal input and sets the daily goal', async () => {
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('g');
+    await flush();
+    expect(instance.lastFrame()).toContain('daily goal (hours):');
+
+    instance.stdin.write('4');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('daily goal set to 4h 00m 00s');
+  });
+
+  test('q exits the app', async () => {
+    const stdin = new FakeStdin() as unknown as NodeJS.ReadStream;
+    const stdout = new FakeStdout() as unknown as NodeJS.WriteStream;
+
+    const instance = inkRender(React.createElement(App), {
+      stdout,
+      stderr: stdout,
+      stdin,
+      debug: true,
+      exitOnCtrlC: false,
+      patchConsole: false,
+    });
+
+    await flush();
+    stdin.write('q');
+
+    const result = await Promise.race([
+      instance.waitUntilExit().then(() => 'exited'),
+      new Promise<string>((resolve) => setTimeout(() => resolve('timeout'), 1000)),
+    ]);
+
+    expect(result).toBe('exited');
   });
 });

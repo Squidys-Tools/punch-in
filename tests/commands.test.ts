@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { start, status, stop } from '../src/commands.js';
-import { loadPath } from '../src/store.js';
+import { goal, start, status, stop } from '../src/commands.js';
+import { DEFAULT_GOAL_SECS, loadPath } from '../src/store.js';
 
 let dir: string;
 let dataFile: string;
@@ -94,3 +94,37 @@ describe('stop', () => {
     expect(parsed.history[0].project).toBe('api');
   });
 });
+
+describe('goal', () => {
+  test('reports the default goal when unset', () => {
+    const result = goal(null);
+    expect(result.ok).toBe(true);
+    expect(result.message).toBe(`daily goal: ${formatHours(DEFAULT_GOAL_SECS)}`);
+  });
+
+  test('sets the daily goal', () => {
+    const result = goal(6);
+    expect(result.ok).toBe(true);
+    expect(result.message).toBe('daily goal set to 6h 00m 00s');
+    expect(readStore().goal_secs).toBe(6 * 3600);
+  });
+
+  test('persists a non-integer goal rounded to seconds', () => {
+    goal(7.5);
+    expect(readStore().goal_secs).toBe(27000);
+  });
+
+  test('rejects zero, negative, and out-of-range goals', () => {
+    expect(goal(0).ok).toBe(false);
+    expect(goal(-2).ok).toBe(false);
+    expect(goal(25).ok).toBe(false);
+    expect(goal(Number.NaN).ok).toBe(false);
+  });
+});
+
+function formatHours(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+}

@@ -1,19 +1,23 @@
 import React from 'react';
-import { Box, Text, useAnimation, useInput, useWindowSize } from 'ink';
-import { start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
+import { Box, Text, useAnimation, useApp, useInput, useWindowSize } from 'ink';
 import {
+  goal as cmdGoal,
+  start as cmdStart,
+  stop as cmdStop,
+  type CmdResult,
+} from './commands.js';
+import {
+  DEFAULT_GOAL_SECS,
   elapsedSeconds,
   formatDuration,
   load,
   todaySessions,
-  totalOn,
-  type Session,
   type Store,
 } from './store.js';
 
-export type Design = 'minimal' | 'today-line' | 'session-list' | 'goal-ring';
+export type Design = 'minimal' | 'goal-ring';
 
-const DESIGNS: Design[] = ['minimal', 'today-line', 'session-list', 'goal-ring'];
+const DESIGNS: Design[] = ['minimal', 'goal-ring'];
 
 function designName(d: Design): string {
   return d;
@@ -24,6 +28,8 @@ function nextDesign(d: Design): Design {
 }
 
 type Mode = 'normal' | 'input';
+
+type PromptKind = 'project' | 'goal';
 
 interface StatusMsg {
   text: string;
@@ -99,27 +105,110 @@ function digit(c: string): string[] {
   return glyphs[c] ?? ['   ', '   ', '   ', '   ', '   '];
 }
 
-function bar(width: number, frac: number): string {
-  const filled = Math.max(0, Math.round(width * frac));
-  return '█'.repeat(Math.min(filled, width)) + '░'.repeat(width - Math.min(filled, width));
+// ---------- goal ring (braille) ----------
+
+interface RingCell {
+  ch: string;
+  filled: boolean;
+  plain: boolean;
 }
 
-function ring(frac: number): string[] {
-  const W = 13;
-  const H = 7;
-  const cells: Array<[number, number]> = [];
-  for (let x = 1; x <= W - 2; x++) cells.push([x, 0]);
-  for (let y = 1; y <= H - 2; y++) cells.push([W - 1, y]);
-  for (let x = W - 2; x >= 1; x--) cells.push([x, H - 1]);
-  for (let y = H - 2; y >= 1; y--) cells.push([0, y]);
-  const filled = Math.max(0, Math.round(frac * cells.length));
-  const grid: string[][] = Array.from({ length: H }, () => Array(W).fill(' '));
-  for (const [x, y] of cells) grid[y][x] = '░';
-  for (let i = 0; i < filled; i++) {
-    const [x, y] = cells[i];
-    grid[y][x] = '█';
+const BRAILLE_BITS = [0x01, 0x08, 0x02, 0x10, 0x04, 0x20, 0x40, 0x80];
+
+function brailleRing(frac: number, radius: number): RingCell[][] {
+  const outer = radius;
+  const inner = radius * 0.72;
+  const cellCols = Math.ceil((2 * outer + 1) / 2);
+  const cellRows = Math.ceil((2 * outer + 1) / 4);
+  const cx = outer;
+  const cy = outer;
+  const grid: RingCell[][] = [];
+  for (let row = 0; row < cellRows; row++) {
+    const cells: RingCell[] = [];
+    for (let col = 0; col < cellCols; col++) {
+      let mask = 0;
+      let anyFilled = false;
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 2; c++) {
+          const x = col * 2 + c;
+          const y = row * 4 + r;
+          const dist = Math.hypot(x - cx, y - cy);
+          if (dist >= inner && dist <= outer) {
+            const angle = (Math.atan2(x - cx, -(y - cy)) + Math.PI * 2) % (Math.PI * 2);
+            if (angle / (Math.PI * 2) <= frac) {
+              anyFilled = true;
+            }
+            mask |= BRAILLE_BITS[r * 2 + c];
+          }
+        }
+      }
+      if (mask === 0) {
+        cells.push({ ch: ' ', filled: false, plain: true });
+      } else {
+        cells.push({ ch: String.fromCodePoint(0x2800 + mask), filled: anyFilled, plain: false });
+      }
+    }
+    grid.push(cells);
   }
-  return grid.map((row) => row.join(''));
+  return grid;
+}
+
+function withPercent(grid: RingCell[][], pct: string): RingCell[][] {
+  const centerRow = Math.floor(grid.length / 2);
+  const row = grid[centerRow];
+  const mid = Math.floor(row.length / 2);
+  if (!row[mid].plain) {
+    return grid;
+  }
+  let start = mid;
+  while (start - 1 >= 0 && row[start - 1].plain) start--;
+  let end = mid;
+  while (end + 1 < row.length && row[end + 1].plain) end++;
+  const runLen = end - start + 1;
+  const pad = Math.max(0, Math.floor((runLen - pct.length) / 2));
+  const text = ' '.repeat(pad) + pct + ' '.repeat(Math.max(0, runLen - pad - pct.length));
+  const next = row.slice();
+  for (let i = 0; i < runLen; i++) {
+    next[start + i] = { ch: text[i] ?? ' ', filled: false, plain: true };
+  }
+  grid[centerRow] = next;
+  return grid;
+}
+
+function RingRow({ cells }: { cells: RingCell[] }) {
+  const spans: React.ReactElement[] = [];
+  let i = 0;
+  while (i < cells.length) {
+    const kind: 'filled' | 'track' | 'plain' = cells[i].plain
+      ? 'plain'
+      : cells[i].filled
+        ? 'filled'
+        : 'track';
+    let text = '';
+    let j = i;
+    while (
+      j < cells.length &&
+      (cells[j].plain ? 'plain' : cells[j].filled ? 'filled' : 'track') === kind
+    ) {
+      text += cells[j].ch;
+      j++;
+    }
+    spans.push(
+      kind === 'filled' ? (
+        <Text key={i} color="green" bold>
+          {text}
+        </Text>
+      ) : kind === 'track' ? (
+        <Text key={i} color="gray">
+          {text}
+        </Text>
+      ) : (
+        <Text key={i}>{text}</Text>
+      ),
+    );
+    i = j;
+  }
+  return <Text>{spans}</Text>;
 }
 
 // ---------- views ----------
@@ -154,13 +243,10 @@ function TimerLines({ store }: { store: Store }) {
   );
 }
 
-function todayStats(store: Store): { count: number; total: number; yesterday: number } {
+function todayStats(store: Store): { count: number; total: number } {
   const today = todaySessions(store.history);
   const total = today.reduce((sum, s) => sum + s.duration_secs, 0);
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  const yesterday = totalOn(store.history, y);
-  return { count: today.length, total, yesterday };
+  return { count: today.length, total };
 }
 
 function DesignView({ store, design }: { store: Store; design: Design }) {
@@ -168,8 +254,6 @@ function DesignView({ store, design }: { store: Store; design: Design }) {
     <Box flexDirection="column" alignItems="center">
       <TimerLines store={store} />
       {design === 'minimal' && <MinimalBody store={store} />}
-      {design === 'today-line' && <TodayLineBody store={store} />}
-      {design === 'session-list' && <SessionListBody store={store} />}
       {design === 'goal-ring' && <GoalRingBody store={store} />}
     </Box>
   );
@@ -188,55 +272,20 @@ function MinimalBody({ store }: { store: Store }) {
   );
 }
 
-function TodayLineBody({ store }: { store: Store }) {
-  const { count, total, yesterday } = todayStats(store);
-  const frac = yesterday > 0 ? Math.min(1, total / yesterday) : 0;
-  return (
-    <>
-      <Text>{' '}</Text>
-      <Text>
-        <Text color="gray">
-          {count} · {formatDuration(total)} today  {' '}
-        </Text>
-        <Text color="yellow">{bar(24, frac)}</Text>
-        <Text color="gray">{`  (${formatDuration(yesterday)} yesterday)`}</Text>
-      </Text>
-    </>
-  );
-}
-
-function sessionLine(s: Session): string {
-  return `${fmtTime(s.started_at, false)} – ${fmtTime(s.ended_at, false)}   ${s.project}   ${formatDuration(s.duration_secs).padStart(12)}`;
-}
-
-function SessionListBody({ store }: { store: Store }) {
-  const today = todaySessions(store.history).slice(-8).reverse();
-  return (
-    <>
-      <Text>{' '}</Text>
-      {today.length === 0 && <Text color="gray">no sessions today</Text>}
-      {today.map((s, i) => (
-        <Text key={i} color="gray">
-          {sessionLine(s)}
-        </Text>
-      ))}
-    </>
-  );
-}
-
 function GoalRingBody({ store }: { store: Store }) {
-  const { total, yesterday } = todayStats(store);
-  const frac = yesterday > 0 ? Math.min(1, total / yesterday) : 0;
+  const goal = store.goal_secs > 0 ? store.goal_secs : DEFAULT_GOAL_SECS;
+  const { total } = todayStats(store);
+  const frac = Math.min(1, total / goal);
+  const pct = Math.round((total / goal) * 100);
+  const grid = withPercent(brailleRing(frac, 9.5), `${pct}%`);
   return (
     <>
       <Text>{' '}</Text>
-      {ring(frac).map((row, i) => (
-        <Text key={i} color="yellow">
-          {row}
-        </Text>
+      {grid.map((row, i) => (
+        <RingRow key={i} cells={row} />
       ))}
       <Text color="gray">
-        today {formatDuration(total)}  ·  yesterday {formatDuration(yesterday)}
+        today {formatDuration(total)} · goal {formatDuration(goal)}
       </Text>
     </>
   );
@@ -259,11 +308,13 @@ function Header({ design }: { design: Design }) {
 
 function Footer({
   mode,
+  prompt,
   input,
   status,
   design,
 }: {
   mode: Mode;
+  prompt: PromptKind;
   input: string;
   status: StatusMsg | null;
   design: Design;
@@ -276,7 +327,7 @@ function Footer({
       {mode === 'input' ? (
         <Text>
           <Text color="cyan" bold>
-            project name:{' '}
+            {prompt === 'project' ? 'project name: ' : 'daily goal (hours): '}
           </Text>
           <Text color="white">{input}▌</Text>
         </Text>
@@ -286,7 +337,7 @@ function Footer({
       <Text color="gray">
         {mode === 'input'
           ? 'enter confirm · esc cancel'
-          : `q quit · i in · o out · t design (${designName(design)})`}
+          : `q quit · i in · o out · g goal · t design (${designName(design)})`}
       </Text>
     </Box>
   );
@@ -296,11 +347,12 @@ interface ShellProps {
   store: Store;
   design: Design;
   mode: Mode;
+  prompt: PromptKind;
   input: string;
   status: StatusMsg | null;
 }
 
-export function Shell({ store, design, mode, input, status }: ShellProps) {
+export function Shell({ store, design, mode, prompt, input, status }: ShellProps) {
   const { rows } = useWindowSize();
   return (
     <Box flexDirection="column" height={rows} width="100%">
@@ -314,21 +366,22 @@ export function Shell({ store, design, mode, input, status }: ShellProps) {
       >
         <DesignView store={store} design={design} />
       </Box>
-      <Footer mode={mode} input={input} status={status} design={design} />
+      <Footer mode={mode} prompt={prompt} input={input} status={status} design={design} />
     </Box>
   );
 }
 
 export function App() {
+  const { exit } = useApp();
   const [store, setStore] = React.useState<Store>(() => {
     const loaded = load();
-    return loaded.ok ? loaded.value : { active: null, history: [] };
+    return loaded.ok ? loaded.value : { active: null, history: [], goal_secs: DEFAULT_GOAL_SECS };
   });
   const [mode, setMode] = React.useState<Mode>('normal');
+  const [prompt, setPrompt] = React.useState<PromptKind>('project');
   const [design, setDesign] = React.useState<Design>('minimal');
   const [input, setInput] = React.useState('');
   const [status, setStatus] = React.useState<StatusMsg | null>(null);
-  const [quit, setQuit] = React.useState(false);
 
   useAnimation({ interval: 500 });
 
@@ -351,11 +404,17 @@ export function App() {
   };
 
   const submitInput = () => {
-    const project = input.trim();
+    const value = input.trim();
     setInput('');
     setMode('normal');
-    report(cmdStart(project || null));
+    report(prompt === 'project' ? cmdStart(value || null) : cmdGoal(Number(value)));
     reload();
+  };
+
+  const beginInput = (kind: PromptKind) => {
+    setPrompt(kind);
+    setInput('');
+    setMode('input');
   };
 
   useInput((keyInput, key) => {
@@ -373,10 +432,11 @@ export function App() {
       return;
     }
     if (keyInput === 'q') {
-      setQuit(true);
+      exit();
     } else if (keyInput === 'i' || keyInput === 'p') {
-      setInput('');
-      setMode('input');
+      beginInput('project');
+    } else if (keyInput === 'g') {
+      beginInput('goal');
     } else if (keyInput === 'o') {
       punchOut();
     } else if (keyInput === 't' || key.tab) {
@@ -384,15 +444,12 @@ export function App() {
     }
   });
 
-  if (quit) {
-    return null;
-  }
-
   return (
     <Shell
       store={store}
       design={design}
       mode={mode}
+      prompt={prompt}
       input={input}
       status={status}
     />
