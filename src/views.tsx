@@ -61,14 +61,34 @@ function fmtClock(d: Date): string {
 
 // ---------- text measurement ----------
 
+// Display width of a character on a terminal: CJK, fullwidth forms, and emoji
+// render two columns. Iterating by code point keeps surrogate pairs (emoji,
+// CJK Ext B+) intact.
+function charWidth(ch: string): number {
+  if (
+    /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{20000}-\u{2FA1F}]/u.test(
+      ch,
+    )
+  ) {
+    return 2;
+  }
+  return 1;
+}
+
+function textWidth(text: string): number {
+  let width = 0;
+  for (const ch of text) width += charWidth(ch);
+  return width;
+}
+
 // Number of terminal rows `text` occupies when wrapped within `cols` columns.
 // Conservative: assumes wrapping at any character, so the result is always at
 // least what Ink renders (word wrapping only packs lines tighter).
-function textRows(text: string, cols: number): number {
+export function textRows(text: string, cols: number): number {
   const width = Math.max(1, cols);
   let lines = 0;
   for (const part of text.split('\n')) {
-    lines += Math.max(1, Math.ceil(part.length / width));
+    lines += Math.max(1, Math.ceil(textWidth(part) / width));
   }
   return lines;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { compactLevel, type CompactLevel } from '../src/views.js';
+import { compactLevel, textRows, type CompactLevel } from '../src/views.js';
 
 describe('compactLevel', () => {
   const level = (rows: number, font: string, ring: string): CompactLevel =>
@@ -50,5 +50,14 @@ describe('compactLevel', () => {
     expect(compactLevel(19, 'blocky', 'smooth', 13)).toBe(2); // wrapped: body 6 -> started drops
     expect(compactLevel(19, 'blocky', 'smooth', 14)).toBe(3); // wrapped: body 5 -> glyphs only
     expect(compactLevel(10, 'blocky', 'smooth', 6)).toBe(4); // wrapped: body 4 -> single line
+  });
+
+  test('textRows counts wide characters as two columns', () => {
+    // 10 CJK chars are 20 columns wide -> 2 rows at 15 cols
+    expect(textRows('你'.repeat(10), 15)).toBe(2);
+    // 10 ASCII chars are 10 columns wide -> 1 row
+    expect(textRows('a'.repeat(10), 15)).toBe(1);
+    // emoji surrogate pairs are counted as two columns each
+    expect(textRows('🔥'.repeat(10), 15)).toBe(2);
   });
 });

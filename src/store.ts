@@ -17,6 +17,10 @@ export interface Session {
 export interface Store {
   active: Active | null;
   history: Session[];
+  /** Unknown or legacy persisted fields, carried through rewrites so an
+   * unrelated save never silently drops data (e.g. a previous version's
+   * `goal_secs`). Not emitted when empty. */
+  extra?: Record<string, unknown>;
 }
 
 function configDir(): string {
@@ -56,8 +60,12 @@ export function loadPath(file: string): Result<Store> {
     return errValue(`failed to read ${file}: ${errMsg(err)}`);
   }
   try {
-    const parsed = JSON.parse(raw, reviveDates);
+    const parsed = JSON.parse(raw, reviveDates) as Record<string, unknown>;
     const store = parsed as Partial<Store>;
+    const extra: Record<string, unknown> = {};
+    for (const key of Object.keys(parsed)) {
+      if (key !== 'active' && key !== 'history') extra[key] = parsed[key];
+    }
     return ok({
       active:
         store.active && typeof store.active === 'object'
@@ -74,6 +82,7 @@ export function loadPath(file: string): Result<Store> {
             duration_secs: Number(s.duration_secs ?? 0),
           }))
         : [],
+      extra,
     });
   } catch (err) {
     return errValue(`corrupt data file ${file}: ${errMsg(err)}`);
@@ -96,6 +105,7 @@ export function savePath(file: string, store: Store): Result<void> {
 
 function serializeStore(store: Store): unknown {
   return {
+    ...(store.extra ?? {}),
     active: store.active
       ? {
           project: store.active.project,

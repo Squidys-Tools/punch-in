@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -93,6 +93,23 @@ describe('save/load roundtrip', () => {
     if (!loaded.ok) throw new Error(loaded.error);
     expect(loaded.value.active).toBeNull();
     expect(loaded.value.history).toEqual([]);
+  });
+
+  test('preserves unknown persisted fields across a rewrite', () => {
+    const file = path.join(dir, 'legacy.json');
+    writeFileSync(
+      file,
+      JSON.stringify({ active: null, history: [], goal_secs: 6 * 3600 }),
+      'utf8',
+    );
+
+    const loaded = loadPath(file);
+    if (!loaded.ok) throw new Error(loaded.error);
+    expect(loaded.value.extra).toEqual({ goal_secs: 21600 });
+
+    const saved = savePath(file, loaded.value);
+    expect(saved.ok).toBe(true);
+    expect(JSON.parse(readFileSync(file, 'utf8')).goal_secs).toBe(21600);
   });
 
   test('corrupt file returns an error', () => {
