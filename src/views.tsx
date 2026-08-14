@@ -59,6 +59,20 @@ function fmtClock(d: Date): string {
   ].join('  ');
 }
 
+// ---------- text measurement ----------
+
+// Number of terminal rows `text` occupies when wrapped within `cols` columns.
+// Conservative: assumes wrapping at any character, so the result is always at
+// least what Ink renders (word wrapping only packs lines tighter).
+function textRows(text: string, cols: number): number {
+  const width = Math.max(1, cols);
+  let lines = 0;
+  for (const part of text.split('\n')) {
+    lines += Math.max(1, Math.ceil(part.length / width));
+  }
+  return lines;
+}
+
 // ---------- compact layout ----------
 
 // 0 = full (timer + project + started + ring)
@@ -68,8 +82,13 @@ function fmtClock(d: Date): string {
 // 4 = single-line timer
 export type CompactLevel = 0 | 1 | 2 | 3 | 4;
 
-export function compactLevel(rows: number, font: TimerFont, ringStyle: RingStyle): CompactLevel {
-  const bodyRows = rows - 4; // header 1 row + footer 3 rows
+export function compactLevel(
+  rows: number,
+  font: TimerFont,
+  ringStyle: RingStyle,
+  reservedRows: number = 4,
+): CompactLevel {
+  const bodyRows = rows - reservedRows; // rows actually taken by header + footer
   const timerH = timerFontHeight(font);
   const ringH = ringHeight(ringStyle);
   const fullH = timerH + ringH + 4;
@@ -250,6 +269,26 @@ function DesignView({
   );
 }
 
+// Header/footer text as plain strings, mirroring the colored rendering in the
+// components below, so Shell can measure how many rows they actually occupy.
+function headerText(font: TimerFont, ringStyle: RingStyle, ringConcept: RingConcept, now: Date): string {
+  return `PUNCH  ·  ${fmtClock(now)}  ·  ${font} / ${ringStyle} / ${ringConcept}`;
+}
+
+function statusText(status: StatusMsg | null): string {
+  return status ? status.text : ' ';
+}
+
+function inputText(mode: Mode, input: string): string {
+  return mode === 'input' ? `project name: ${input}▌` : ' ';
+}
+
+function helpText(mode: Mode, font: TimerFont, ringStyle: RingStyle, ringConcept: RingConcept): string {
+  return mode === 'input'
+    ? 'enter confirm · esc cancel'
+    : `q quit · i in · o out · t font (${font}) · r ring (${ringStyle}) · c concept (${ringConcept})`;
+}
+
 function Header({ font, ringStyle, ringConcept }: { font: TimerFont; ringStyle: RingStyle; ringConcept: RingConcept }) {
   const now = new Date();
   return (
@@ -283,7 +322,7 @@ function Footer({
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text color={status ? (status.isError ? 'red' : 'green') : undefined}>
-        {status ? status.text : ' '}
+        {statusText(status)}
       </Text>
       {mode === 'input' ? (
         <Text>
@@ -295,11 +334,7 @@ function Footer({
       ) : (
         <Text>{' '}</Text>
       )}
-      <Text color="gray">
-        {mode === 'input'
-          ? 'enter confirm · esc cancel'
-          : `q quit · i in · o out · t font (${font}) · r ring (${ringStyle}) · c concept (${ringConcept})`}
-      </Text>
+      <Text color="gray">{helpText(mode, font, ringStyle, ringConcept)}</Text>
     </Box>
   );
 }
@@ -315,8 +350,15 @@ interface ShellProps {
 }
 
 export function Shell({ store, font, ringStyle, ringConcept, mode, input, status }: ShellProps) {
-  const { rows } = useWindowSize();
-  const compact = compactLevel(rows, font, ringStyle);
+  const { rows, columns } = useWindowSize();
+  const bodyWidth = Math.max(1, columns - 2); // header/footer use paddingX={1}
+  const now = new Date();
+  const reservedRows =
+    textRows(headerText(font, ringStyle, ringConcept, now), bodyWidth) +
+    textRows(statusText(status), bodyWidth) +
+    textRows(inputText(mode, input), bodyWidth) +
+    textRows(helpText(mode, font, ringStyle, ringConcept), bodyWidth);
+  const compact = compactLevel(rows, font, ringStyle, reservedRows);
   return (
     <Box flexDirection="column" height={rows} width="100%">
       <Header font={font} ringStyle={ringStyle} ringConcept={ringConcept} />

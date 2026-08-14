@@ -42,4 +42,13 @@ describe('compactLevel', () => {
     expect(level(9, 'blocky', 'none')).toBe(3); // body 5
     expect(level(8, 'blocky', 'none')).toBe(4); // body 4
   });
+
+  test('wrapped header/footer reserve more rows', () => {
+    // blocky+smooth: fullH = 15, noRingH = 7, noStartedH = 6, timerH = 5
+    expect(compactLevel(19, 'blocky', 'smooth')).toBe(0); // default: body 15 -> full
+    expect(compactLevel(19, 'blocky', 'smooth', 6)).toBe(1); // wrapped: body 13 -> ring drops
+    expect(compactLevel(19, 'blocky', 'smooth', 13)).toBe(2); // wrapped: body 6 -> started drops
+    expect(compactLevel(19, 'blocky', 'smooth', 14)).toBe(3); // wrapped: body 5 -> glyphs only
+    expect(compactLevel(10, 'blocky', 'smooth', 6)).toBe(4); // wrapped: body 4 -> single line
+  });
 });
