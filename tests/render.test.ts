@@ -6,7 +6,7 @@ import { EventEmitter } from 'node:events';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { App, Shell, type Design } from '../src/views.js';
+import { App, Shell, type RingConcept, type RingStyle, type TimerFont } from '../src/views.js';
 import { DEFAULT_GOAL_SECS, type Store } from '../src/store.js';
 
 let dir: string;
@@ -93,14 +93,18 @@ class FakeStdout extends EventEmitter {
 }
 
 describe('design previews', () => {
-  const designs: Design[] = ['minimal', 'goal-ring'];
+  const fonts: TimerFont[] = ['blocky', 'digital', 'pixel', 'gradient'];
+  const ringStyles: RingStyle[] = ['none', 'smooth', 'thin', 'pixel'];
+  const ringConcepts: RingConcept[] = ['day-dial', 'day-left'];
 
-  for (const design of designs) {
-    test(`${design} renders without panicking`, () => {
+  for (const font of fonts) {
+    test(`font ${font} renders without panicking`, () => {
       const instance = render(
         React.createElement(Shell, {
           store: fakeStore(),
-          design,
+          font,
+          ringStyle: 'smooth',
+          ringConcept: 'day-dial',
           mode: 'normal',
           prompt: 'project',
           input: '',
@@ -113,15 +117,58 @@ describe('design previews', () => {
       expect(frame.length).toBeGreaterThan(0);
       expect(frame).toContain('PUNCH');
       expect(frame).toContain('tui');
-
-      const preview = `target/preview-${design}.txt`;
-      writeFileSync(preview, stripAnsi(frame));
     });
   }
+
+  for (const ringStyle of ringStyles) {
+    for (const ringConcept of ringConcepts) {
+      test(`ring ${ringStyle}/${ringConcept} renders without panicking`, () => {
+        const instance = render(
+          React.createElement(Shell, {
+            store: fakeStore(),
+            font: 'blocky',
+            ringStyle,
+            ringConcept,
+            mode: 'normal',
+            prompt: 'project',
+            input: '',
+            status: null,
+          }),
+        );
+        const frame = instance.lastFrame() ?? '';
+        instance.unmount();
+
+        expect(frame.length).toBeGreaterThan(0);
+        expect(frame).toContain('PUNCH');
+      });
+    }
+  }
+
+  test('writes combined previews', () => {
+    const pick = (font: TimerFont, ringStyle: RingStyle, ringConcept: RingConcept) => {
+      const instance = render(
+        React.createElement(Shell, {
+          store: fakeStore(),
+          font,
+          ringStyle,
+          ringConcept,
+          mode: 'normal',
+          prompt: 'project',
+          input: '',
+          status: null,
+        }),
+      );
+      const frame = instance.lastFrame() ?? '';
+      instance.unmount();
+      return frame;
+    };
+    writeFileSync('target/preview-minimal.txt', stripAnsi(pick('blocky', 'none', 'day-dial')));
+    writeFileSync('target/preview-goal-ring.txt', stripAnsi(pick('blocky', 'smooth', 'day-left')));
+  });
 });
 
 describe('App interaction', () => {
-  test('tab cycles the design', async () => {
+  test('t cycles the timer font', async () => {
     const instance = render(React.createElement(App));
     await flush();
     instance.stdin.write('\t');
@@ -129,7 +176,29 @@ describe('App interaction', () => {
     const frame = instance.lastFrame() ?? '';
     instance.unmount();
 
-    expect(frame).toContain('design: goal-ring');
+    expect(frame).toContain('t font (digital)');
+  });
+
+  test('r cycles the ring style', async () => {
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('r');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('r ring (thin)');
+  });
+
+  test('c cycles the ring concept', async () => {
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('c');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('c concept (day-left)');
   });
 
   test('i enters input mode and enter starts a session', async () => {

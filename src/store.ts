@@ -125,8 +125,8 @@ export function formatDuration(secs: number): string {
   return `${s}s`;
 }
 
-export function todaySessions(history: Session[]): Session[] {
-  return history.filter((s) => isSameDay(s.started_at, new Date()));
+export function todaySessions(history: Session[], now: Date = new Date()): Session[] {
+  return history.filter((s) => isSameDay(s.started_at, now));
 }
 
 export function totalOn(history: Session[], date: Date): number {
