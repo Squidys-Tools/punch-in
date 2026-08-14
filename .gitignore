@@ -1,0 +1,5 @@
+# Node / Bun
+node_modules/
+
+# Rust build artifacts (legacy)
+/target
