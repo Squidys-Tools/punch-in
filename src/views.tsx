@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Text, useAnimation, useInput } from 'ink';
+import { Box, Text, useAnimation, useInput, useWindowSize } from 'ink';
 import { start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
 import {
   elapsedSeconds,
@@ -245,7 +245,7 @@ function GoalRingBody({ store }: { store: Store }) {
 function Header({ design }: { design: Design }) {
   const now = new Date();
   return (
-    <Box paddingX={1}>
+    <Box paddingX={1} height={3}>
       <Text>
         <Text color="cyan" bold>
           PUNCH
@@ -270,16 +270,18 @@ function Footer({
 }) {
   return (
     <Box flexDirection="column" paddingX={1}>
-      {status && (
-        <Text color={status.isError ? 'red' : 'green'}>{status.text}</Text>
-      )}
-      {mode === 'input' && (
+      <Text color={status ? (status.isError ? 'red' : 'green') : undefined}>
+        {status ? status.text : ' '}
+      </Text>
+      {mode === 'input' ? (
         <Text>
           <Text color="cyan" bold>
             project name:{' '}
           </Text>
           <Text color="white">{input}▌</Text>
         </Text>
+      ) : (
+        <Text>{' '}</Text>
       )}
       <Text color="gray">
         {mode === 'input'
@@ -299,13 +301,18 @@ interface ShellProps {
 }
 
 export function Shell({ store, design, mode, input, status }: ShellProps) {
+  const { rows } = useWindowSize();
   return (
-    <Box flexDirection="column" width="100%">
+    <Box flexDirection="column" height={rows} width="100%">
       <Header design={design} />
-      <Box width="100%">
-        <Box flexDirection="column" width="100%">
-          <DesignView store={store} design={design} />
-        </Box>
+      <Box
+        flexGrow={1}
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        width="100%"
+      >
+        <DesignView store={store} design={design} />
       </Box>
       <Footer mode={mode} input={input} status={status} design={design} />
     </Box>
