@@ -12,7 +12,6 @@ import {
   todaySessions,
   totalOn,
   toRfc3339Local,
-  DEFAULT_GOAL_SECS,
   type Session,
   type Store,
 } from '../src/store.js';
@@ -65,7 +64,6 @@ describe('save/load roundtrip', () => {
     const store: Store = {
       active: { project: 'web', started_at: started },
       history: [makeSession(started, ended, 'web', 2700)],
-      goal_secs: DEFAULT_GOAL_SECS,
     };
 
     const saved = savePath(file, store);
@@ -95,7 +93,6 @@ describe('save/load roundtrip', () => {
     if (!loaded.ok) throw new Error(loaded.error);
     expect(loaded.value.active).toBeNull();
     expect(loaded.value.history).toEqual([]);
-    expect(loaded.value.goal_secs).toBe(DEFAULT_GOAL_SECS);
   });
 
   test('corrupt file returns an error', () => {

@@ -1,12 +1,7 @@
 import React from 'react';
 import { Box, Text, useAnimation, useApp, useInput, useWindowSize } from 'ink';
-import {
-  goal as cmdGoal,
-  start as cmdStart,
-  stop as cmdStop,
-  type CmdResult,
-} from './commands.js';
-import { DEFAULT_GOAL_SECS, elapsedSeconds, load, type Active, type Store } from './store.js';
+import { start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
+import { elapsedSeconds, load, type Active, type Store } from './store.js';
 import {
   FONTS,
   gradientColor,
@@ -35,8 +30,6 @@ function next<T>(list: T[], v: T): T {
 }
 
 type Mode = 'normal' | 'input';
-
-type PromptKind = 'project' | 'goal';
 
 interface StatusMsg {
   text: string;
@@ -101,6 +94,7 @@ function fmtElapsed(active: Active): string {
 
 function GradientText({ row }: { row: string }) {
   const chars: React.ReactNode[] = [];
+  const visible = row.split('').filter((ch) => ch !== ' ').length;
   let col = 0;
   for (let i = 0; i < row.length; i++) {
     const ch = row[i];
@@ -108,7 +102,7 @@ function GradientText({ row }: { row: string }) {
       chars.push(' ');
       continue;
     }
-    const { r, g, b } = gradientColor(col / Math.max(1, row.length - 1));
+    const { r, g, b } = gradientColor(col / Math.max(1, visible - 1));
     const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
     chars.push(
       <Text key={i} color={hex}>
@@ -273,7 +267,6 @@ function Header({ font, ringStyle, ringConcept }: { font: TimerFont; ringStyle: 
 
 function Footer({
   mode,
-  prompt,
   input,
   status,
   font,
@@ -281,7 +274,6 @@ function Footer({
   ringConcept,
 }: {
   mode: Mode;
-  prompt: PromptKind;
   input: string;
   status: StatusMsg | null;
   font: TimerFont;
@@ -296,7 +288,7 @@ function Footer({
       {mode === 'input' ? (
         <Text>
           <Text color="cyan" bold>
-            {prompt === 'project' ? 'project name: ' : 'daily goal (hours): '}
+            project name:{' '}
           </Text>
           <Text color="white">{input}▌</Text>
         </Text>
@@ -306,7 +298,7 @@ function Footer({
       <Text color="gray">
         {mode === 'input'
           ? 'enter confirm · esc cancel'
-          : `q quit · i in · o out · g goal · t font (${font}) · r ring (${ringStyle}) · c concept (${ringConcept})`}
+          : `q quit · i in · o out · t font (${font}) · r ring (${ringStyle}) · c concept (${ringConcept})`}
       </Text>
     </Box>
   );
@@ -318,12 +310,11 @@ interface ShellProps {
   ringStyle: RingStyle;
   ringConcept: RingConcept;
   mode: Mode;
-  prompt: PromptKind;
   input: string;
   status: StatusMsg | null;
 }
 
-export function Shell({ store, font, ringStyle, ringConcept, mode, prompt, input, status }: ShellProps) {
+export function Shell({ store, font, ringStyle, ringConcept, mode, input, status }: ShellProps) {
   const { rows } = useWindowSize();
   const compact = compactLevel(rows, font, ringStyle);
   return (
@@ -344,7 +335,7 @@ export function Shell({ store, font, ringStyle, ringConcept, mode, prompt, input
           compact={compact}
         />
       </Box>
-      <Footer mode={mode} prompt={prompt} input={input} status={status} font={font} ringStyle={ringStyle} ringConcept={ringConcept} />
+      <Footer mode={mode} input={input} status={status} font={font} ringStyle={ringStyle} ringConcept={ringConcept} />
     </Box>
   );
 }
@@ -353,10 +344,9 @@ export function App() {
   const { exit } = useApp();
   const [store, setStore] = React.useState<Store>(() => {
     const loaded = load();
-    return loaded.ok ? loaded.value : { active: null, history: [], goal_secs: DEFAULT_GOAL_SECS };
+    return loaded.ok ? loaded.value : { active: null, history: [] };
   });
   const [mode, setMode] = React.useState<Mode>('normal');
-  const [prompt, setPrompt] = React.useState<PromptKind>('project');
   const [font, setFont] = React.useState<TimerFont>('blocky');
   const [ringStyle, setRingStyle] = React.useState<RingStyle>('smooth');
   const [ringConcept, setRingConcept] = React.useState<RingConcept>('day-dial');
@@ -387,14 +377,8 @@ export function App() {
     const value = input.trim();
     setInput('');
     setMode('normal');
-    report(prompt === 'project' ? cmdStart(value || null) : cmdGoal(Number(value)));
+    report(cmdStart(value || null));
     reload();
-  };
-
-  const beginInput = (kind: PromptKind) => {
-    setPrompt(kind);
-    setInput('');
-    setMode('input');
   };
 
   useInput((keyInput, key) => {
@@ -414,9 +398,8 @@ export function App() {
     if (keyInput === 'q') {
       exit();
     } else if (keyInput === 'i' || keyInput === 'p') {
-      beginInput('project');
-    } else if (keyInput === 'g') {
-      beginInput('goal');
+      setMode('input');
+      setInput('');
     } else if (keyInput === 'o') {
       punchOut();
     } else if (keyInput === 't' || key.tab) {
@@ -435,7 +418,6 @@ export function App() {
       ringStyle={ringStyle}
       ringConcept={ringConcept}
       mode={mode}
-      prompt={prompt}
       input={input}
       status={status}
     />

@@ -1,4 +1,4 @@
-// ---------- goal ring ----------
+// ---------- progress ring ----------
 //
 // Pure rendering of the progress ring. Styles:
 //   smooth - thick braille band (the classic look)

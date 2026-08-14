@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { App, Shell, type RingConcept, type RingStyle, type TimerFont } from '../src/views.js';
-import { DEFAULT_GOAL_SECS, type Store } from '../src/store.js';
+import { type Store } from '../src/store.js';
 
 let dir: string;
 
@@ -45,7 +45,6 @@ function fakeStore(): Store {
   return {
     active: { project: 'tui', started_at: new Date(now.getTime() - 5 * 60 * 1000) },
     history,
-    goal_secs: DEFAULT_GOAL_SECS,
   };
 }
 
@@ -106,7 +105,6 @@ describe('design previews', () => {
           ringStyle: 'smooth',
           ringConcept: 'day-dial',
           mode: 'normal',
-          prompt: 'project',
           input: '',
           status: null,
         }),
@@ -130,7 +128,6 @@ describe('design previews', () => {
             ringStyle,
             ringConcept,
             mode: 'normal',
-            prompt: 'project',
             input: '',
             status: null,
           }),
@@ -153,7 +150,6 @@ describe('design previews', () => {
           ringStyle,
           ringConcept,
           mode: 'normal',
-          prompt: 'project',
           input: '',
           status: null,
         }),
@@ -238,23 +234,6 @@ describe('App interaction', () => {
 
     expect(frame).toContain('stopped');
     expect(frame).toContain("'web'");
-  });
-
-  test('g enters goal input and sets the daily goal', async () => {
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('g');
-    await flush();
-    expect(instance.lastFrame()).toContain('daily goal (hours):');
-
-    instance.stdin.write('4');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
-
-    expect(frame).toContain('daily goal set to 4h 00m 00s');
   });
 
   test('q exits the app', async () => {

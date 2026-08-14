@@ -69,7 +69,6 @@ const mk = (project: string, mins: number): { project: string; started_at: Date;
 const store = {
   active: null,
   history: [mk('web', 45), mk('blog', 90), mk('tui', 30)],
-  goal_secs: 8 * 3600,
 };
 
 // ---------- gallery ----------
