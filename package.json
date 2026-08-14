@@ -13,7 +13,8 @@
     "start": "bun run src/main.ts",
     "dev": "bun --watch src/main.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "preview": "bun run scripts/preview.ts"
   },
   "keywords": [
     "tui",

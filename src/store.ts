@@ -17,10 +17,7 @@ export interface Session {
 export interface Store {
   active: Active | null;
   history: Session[];
-  goal_secs: number;
 }
-
-export const DEFAULT_GOAL_SECS = 8 * 3600;
 
 function configDir(): string {
   if (process.env.APPDATA) {
@@ -50,7 +47,7 @@ export function save(store: Store): Result<void> {
 
 export function loadPath(file: string): Result<Store> {
   if (!fs.existsSync(file)) {
-    return ok({ active: null, history: [], goal_secs: DEFAULT_GOAL_SECS });
+    return ok({ active: null, history: [] });
   }
   let raw: string;
   try {
@@ -77,7 +74,6 @@ export function loadPath(file: string): Result<Store> {
             duration_secs: Number(s.duration_secs ?? 0),
           }))
         : [],
-      goal_secs: Number(store.goal_secs) > 0 ? Number(store.goal_secs) : DEFAULT_GOAL_SECS,
     });
   } catch (err) {
     return errValue(`corrupt data file ${file}: ${errMsg(err)}`);
@@ -112,7 +108,6 @@ function serializeStore(store: Store): unknown {
       ended_at: toRfc3339Local(s.ended_at),
       duration_secs: s.duration_secs,
     })),
-    goal_secs: store.goal_secs,
   };
 }
 
@@ -125,8 +120,8 @@ export function formatDuration(secs: number): string {
   return `${s}s`;
 }
 
-export function todaySessions(history: Session[]): Session[] {
-  return history.filter((s) => isSameDay(s.started_at, new Date()));
+export function todaySessions(history: Session[], now: Date = new Date()): Session[] {
+  return history.filter((s) => isSameDay(s.started_at, now));
 }
 
 export function totalOn(history: Session[], date: Date): number {
