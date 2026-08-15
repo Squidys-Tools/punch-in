@@ -472,9 +472,9 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       setMode('input');
     }
     else if (keyInput === 'o' && store.active) setMode('stop-confirm');
-    else if (keyInput === '?') setScreen('help');
-    else if (keyInput === 'a') { setActivityDate(new Date()); setActivityTab('sessions'); setScreen('activity'); }
-    else if (keyInput === 's') { setDraftPreferences(preferences); setScreen('settings'); }
+    else if (keyInput === '?') { setStatus(null); setScreen('help'); }
+    else if (keyInput === 'a') { setStatus(null); setActivityDate(new Date()); setActivityTab('sessions'); setScreen('activity'); }
+    else if (keyInput === 's') { setStatus(null); setDraftPreferences(preferences); setScreen('settings'); }
   });
 
   if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} status={status} />;

@@ -12,7 +12,12 @@ describe('timer fonts', () => {
     for (const font of FONTS) {
       const rows = timerRows(3661, font);
       expect(rows.length).toBeGreaterThan(0);
-      expect(rows.join('\n')).toContain(font === 'digital' ? ' _ ' : font === 'pixel' ? '⠿' : '███');
+      expect(rows.join('\n')).toContain(font === 'digital' ? ' _ ' : '███');
     }
+  });
+
+  test('pixel font is larger than the compact digital font', () => {
+    expect(timerFontHeight('pixel')).toBeGreaterThan(timerFontHeight('digital'));
+    expect(timerRows(3661, 'pixel')[0].length).toBeGreaterThan(timerRows(3661, 'digital')[0].length);
   });
 });

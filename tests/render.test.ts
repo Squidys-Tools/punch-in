@@ -116,6 +116,33 @@ describe('timer interactions', () => {
     expect(stored.active).toBeNull();
     expect(stored.history).toHaveLength(1);
   });
+
+  test('logged status does not leak into Help or Settings', async () => {
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('i');
+    await flush();
+    instance.stdin.write('research');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('o');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('?');
+    await flush();
+    expect(instance.lastFrame()).not.toContain('Logged');
+    instance.stdin.write('\x1b');
+    await flush();
+    instance.stdin.write('s');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('SETTINGS');
+    expect(frame).not.toContain('Logged');
+  });
 });
 
 describe('setup and settings', () => {
