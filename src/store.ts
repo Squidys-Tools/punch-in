@@ -125,8 +125,8 @@ export function formatDuration(secs: number): string {
   return `${s}s`;
 }
 
-export function todaySessions(history: Session[]): Session[] {
-  return sessionsOn(history, new Date());
+export function todaySessions(history: Session[], now: Date = new Date()): Session[] {
+  return sessionsOn(history, now);
 }
 
 export function sessionsOn(history: Session[], date: Date): Session[] {

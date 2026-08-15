@@ -10,10 +10,12 @@ import {
   type Preferences,
   loadPreferences,
 } from './preferences.js';
-import { FONTS, gradientColor, timerRows, type TimerFont } from './fonts.js';
-import { RING_CONCEPTS, RING_STYLES, ringData, ringGrid, type Cell, type RingConcept, type RingStyle } from './ring.js';
+import { FONTS, gradientColor, timerFontHeight, timerRows, type TimerFont } from './fonts.js';
+import { RING_CONCEPTS, RING_STYLES, ringData, ringGrid, ringHeight, type Cell, type RingConcept, type RingStyle } from './ring.js';
 
 export type InitialScreen = 'timer' | 'settings';
+export type { TimerFont } from './fonts.js';
+export type { RingConcept, RingStyle } from './ring.js';
 type Mode = 'normal' | 'input' | 'stop-confirm';
 type Screen = 'timer' | 'setup' | 'settings' | 'help' | 'activity';
 type ActivityTab = 'sessions' | 'analytics';
@@ -29,6 +31,27 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export function isCompactViewport(rows: number, columns: number): boolean {
   return rows < 19 || columns < 60;
+}
+
+export type CompactLevel = 0 | 1 | 2 | 3 | 4;
+
+export function compactLevel(
+  rows: number,
+  font: TimerFont,
+  ringStyle: RingStyle,
+  reservedRows: number = 4,
+): CompactLevel {
+  const bodyRows = rows - reservedRows;
+  const timerH = timerFontHeight(font);
+  const ringH = ringHeight(ringStyle);
+  const fullH = timerH + ringH + 4;
+  const noRingH = timerH + 2;
+  const noStartedH = timerH + 1;
+  if (bodyRows >= fullH) return 0;
+  if (bodyRows >= noRingH) return 1;
+  if (bodyRows >= noStartedH) return 2;
+  if (bodyRows >= timerH) return 3;
+  return 4;
 }
 
 function formatTime(date: Date, clockFormat: ClockFormat, seconds = false): string {
@@ -127,11 +150,12 @@ function Header({ preferences }: { preferences: Preferences }) {
   );
 }
 
-function Footer({ mode, input, status, store }: { mode: Mode; input: string; status: StatusMsg | null; store: Store }) {
+function Footer({ mode, input, status, store, preferences }: { mode: Mode; input: string; status: StatusMsg | null; store: Store; preferences: Preferences }) {
   let help = 'a activity · s settings · ? help · i start · q quit';
   if (store.active) help = 'a activity · s settings · ? help · o stop · q quit';
   if (mode === 'input') help = 'enter confirm · esc cancel';
   if (mode === 'stop-confirm') help = 'enter confirm · esc cancel';
+  if (mode === 'normal') help += ` · t font (${preferences.font}) · r ring (${preferences.ringStyle}) · c concept (${preferences.ringConcept})`;
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text color={status ? (status.isError ? 'red' : 'green') : undefined}>{status?.text ?? ' '}</Text>
@@ -329,7 +353,7 @@ export function Shell({ store, preferences, mode, input, status }: ShellProps) {
       <Box flexGrow={1} flexDirection="column" justifyContent="center" alignItems="center" width="100%">
         <TimerBody store={store} preferences={preferences} compact={compact} />
       </Box>
-      <Footer mode={mode} input={input} status={status} store={store} />
+      <Footer mode={mode} input={input} status={status} store={store} preferences={preferences} />
     </Box>
   );
 }
@@ -398,6 +422,16 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     setPreferences(next);
     setDraftPreferences(next);
     setScreen(nextScreen);
+  };
+
+  const saveQuickPreference = (next: Preferences) => {
+    const result = savePreferences(next);
+    if (!result.ok) {
+      setStatus({ text: result.error, isError: true });
+      return;
+    }
+    setPreferences(next);
+    setDraftPreferences(next);
   };
 
   const changeSetupChoice = () => {
@@ -472,6 +506,9 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       setMode('input');
     }
     else if (keyInput === 'o' && store.active) setMode('stop-confirm');
+    else if (keyInput === 't') saveQuickPreference({ ...preferences, font: cycle(FONTS, preferences.font) });
+    else if (keyInput === 'r') saveQuickPreference({ ...preferences, ringStyle: cycle(RING_STYLES, preferences.ringStyle) });
+    else if (keyInput === 'c') saveQuickPreference({ ...preferences, ringConcept: cycle(RING_CONCEPTS, preferences.ringConcept) });
     else if (keyInput === '?') { setStatus(null); setScreen('help'); }
     else if (keyInput === 'a') { setStatus(null); setActivityDate(new Date()); setActivityTab('sessions'); setScreen('activity'); }
     else if (keyInput === 's') { setStatus(null); setDraftPreferences(preferences); setScreen('settings'); }
