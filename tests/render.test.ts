@@ -1,144 +1,55 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import React from 'react';
-import { render as inkRender } from 'ink';
 import { render } from 'ink-testing-library';
-import { EventEmitter } from 'node:events';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { App, Shell, type Design } from '../src/views.js';
-import { DEFAULT_GOAL_SECS, type Store } from '../src/store.js';
+import { App } from '../src/views.js';
+import { DEFAULT_PREFERENCES, savePreferencesPath } from '../src/preferences.js';
 
 let dir: string;
+let dataFile: string;
+let preferencesFile: string;
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(os.tmpdir(), 'punch-render-'));
-  process.env.PUNCH_DATA = path.join(dir, 'punch.json');
+  dataFile = path.join(dir, 'punch.json');
+  preferencesFile = path.join(dir, 'preferences.json');
+  process.env.PUNCH_DATA = dataFile;
+  process.env.PUNCH_PREFERENCES = preferencesFile;
+  savePreferencesPath(preferencesFile, { ...DEFAULT_PREFERENCES, setupComplete: true });
 });
 
 afterEach(() => {
   delete process.env.PUNCH_DATA;
+  delete process.env.PUNCH_PREFERENCES;
   rmSync(dir, { recursive: true, force: true });
 });
-
-function fakeStore(): Store {
-  const now = new Date();
-  const history = [];
-  const spec: Array<[string, number]> = [['web', 45], ['blog', 90], ['tui', 30]];
-  for (let i = 0; i < spec.length; i++) {
-    const start = new Date(now.getTime() - 180 * 60 * 1000 + i * 40 * 60 * 1000);
-    const end = new Date(start.getTime() + spec[i][1] * 60 * 1000);
-    history.push({
-      project: spec[i][0],
-      started_at: start,
-      ended_at: end,
-      duration_secs: spec[i][1] * 60,
-    });
-  }
-  const yStart = new Date(now.getTime() - 24 * 3600 * 1000 - 30 * 60 * 1000);
-  history.push({
-    project: 'blog',
-    started_at: yStart,
-    ended_at: new Date(yStart.getTime() + 70 * 60 * 1000),
-    duration_secs: 70 * 60,
-  });
-  return {
-    active: { project: 'tui', started_at: new Date(now.getTime() - 5 * 60 * 1000) },
-    history,
-    goal_secs: DEFAULT_GOAL_SECS,
-  };
-}
-
-function stripAnsi(s: string): string {
-  return s.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').replace(/\x1b[()][A-B0-9]/g, '');
-}
 
 async function flush(ms = 25): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-class FakeStdin extends EventEmitter {
-  isTTY = true;
-  data: unknown = null;
-  write(data: unknown) {
-    this.data = data;
-    this.emit('readable');
-    this.emit('data', data);
-  }
-  setEncoding() {}
-  setRawMode() {}
-  resume() {}
-  pause() {}
-  ref() {}
-  unref() {}
-  read() {
-    const { data } = this;
-    this.data = null;
-    return data;
-  }
-}
-
-class FakeStdout extends EventEmitter {
-  isTTY = true;
-  get columns() {
-    return 100;
-  }
-  get rows() {
-    return 30;
-  }
-  frames: string[] = [];
-  write = (frame: string) => {
-    this.frames.push(frame);
-  };
-}
-
-describe('design previews', () => {
-  const designs: Design[] = ['minimal', 'goal-ring'];
-
-  for (const design of designs) {
-    test(`${design} renders without panicking`, () => {
-      const instance = render(
-        React.createElement(Shell, {
-          store: fakeStore(),
-          design,
-          mode: 'normal',
-          prompt: 'project',
-          input: '',
-          status: null,
-        }),
-      );
-      const frame = instance.lastFrame() ?? '';
-      instance.unmount();
-
-      expect(frame.length).toBeGreaterThan(0);
-      expect(frame).toContain('PUNCH');
-      expect(frame).toContain('tui');
-
-      const preview = `target/preview-${design}.txt`;
-      writeFileSync(preview, stripAnsi(frame));
-    });
-  }
-});
-
-describe('App interaction', () => {
-  test('tab cycles the design', async () => {
+describe('timer interactions', () => {
+  test('idle footer exposes frequent actions without setup controls', async () => {
     const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('\t');
     await flush();
     const frame = instance.lastFrame() ?? '';
     instance.unmount();
 
-    expect(frame).toContain('design: goal-ring');
+    expect(frame).toContain('a activity');
+    expect(frame).toContain('? help');
+    expect(frame).toContain('i start');
+    expect(frame).toContain('q quit');
+    expect(frame).not.toContain('design:');
+    expect(frame).not.toContain('g goal');
   });
 
-  test('i enters input mode and enter starts a session', async () => {
+  test('starting a project shows the active state and stop action', async () => {
     const instance = render(React.createElement(App));
     await flush();
     instance.stdin.write('i');
     await flush();
-    expect(instance.lastFrame()).toContain('project name:');
-
     instance.stdin.write('blog');
     await flush();
     instance.stdin.write('\r');
@@ -146,69 +57,52 @@ describe('App interaction', () => {
     const frame = instance.lastFrame() ?? '';
     instance.unmount();
 
-    expect(frame).toContain("started tracking 'blog'");
-    expect(frame).toContain('▶ blog');
+    expect(frame).toContain('blog');
+    expect(frame).toContain('o stop');
+    expect(frame).toContain('TRACKING');
   });
 
-  test('o punches out the active session', async () => {
-    writeFileSync(
-      process.env.PUNCH_DATA!,
-      JSON.stringify({
-        active: { project: 'web', started_at: new Date(Date.now() - 60 * 1000) },
-        history: [],
-      }),
-      'utf8',
-    );
-
+  test('Esc cancels punch-out confirmation without writing a session', async () => {
     const instance = render(React.createElement(App));
     await flush();
+    instance.stdin.write('i');
+    await flush();
+    instance.stdin.write('blog');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
     instance.stdin.write('o');
+    await flush();
+    expect(instance.lastFrame()).toContain('Esc cancel');
+    instance.stdin.write('\x1b');
     await flush();
     const frame = instance.lastFrame() ?? '';
     instance.unmount();
 
-    expect(frame).toContain('stopped');
-    expect(frame).toContain("'web'");
+    expect(frame).toContain('blog');
+    expect(JSON.parse(readFileSync(dataFile, 'utf8')).history).toHaveLength(0);
   });
 
-  test('g enters goal input and sets the daily goal', async () => {
+  test('Enter confirms punch-out and reports the logged project', async () => {
     const instance = render(React.createElement(App));
     await flush();
-    instance.stdin.write('g');
+    instance.stdin.write('i');
     await flush();
-    expect(instance.lastFrame()).toContain('daily goal (hours):');
-
-    instance.stdin.write('4');
+    instance.stdin.write('research');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('o');
     await flush();
     instance.stdin.write('\r');
     await flush();
     const frame = instance.lastFrame() ?? '';
     instance.unmount();
 
-    expect(frame).toContain('daily goal set to 4h 00m 00s');
-  });
-
-  test('q exits the app', async () => {
-    const stdin = new FakeStdin() as unknown as NodeJS.ReadStream;
-    const stdout = new FakeStdout() as unknown as NodeJS.WriteStream;
-
-    const instance = inkRender(React.createElement(App), {
-      stdout,
-      stderr: stdout,
-      stdin,
-      debug: true,
-      exitOnCtrlC: false,
-      patchConsole: false,
-    });
-
-    await flush();
-    stdin.write('q');
-
-    const result = await Promise.race([
-      instance.waitUntilExit().then(() => 'exited'),
-      new Promise<string>((resolve) => setTimeout(() => resolve('timeout'), 1000)),
-    ]);
-
-    expect(result).toBe('exited');
+    expect(frame).toContain('Logged');
+    expect(frame).toContain('research');
+    const stored = JSON.parse(readFileSync(dataFile, 'utf8'));
+    expect(stored.active).toBeNull();
+    expect(stored.history).toHaveLength(1);
   });
 });

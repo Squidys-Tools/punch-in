@@ -1,35 +1,18 @@
 import React from 'react';
 import { Box, Text, useAnimation, useApp, useInput, useWindowSize } from 'ink';
+import { start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
+import { elapsedSeconds, formatDuration, load, type Active, type Store } from './store.js';
 import {
-  goal as cmdGoal,
-  start as cmdStart,
-  stop as cmdStop,
-  type CmdResult,
-} from './commands.js';
-import {
-  DEFAULT_GOAL_SECS,
-  elapsedSeconds,
-  formatDuration,
-  load,
-  todaySessions,
-  type Store,
-} from './store.js';
+  DEFAULT_PREFERENCES,
+  type ClockFormat,
+  type Preferences,
+  loadPreferences,
+} from './preferences.js';
+import { gradientColor, timerRows, type TimerFont } from './fonts.js';
+import { ringData, ringGrid, type Cell } from './ring.js';
 
-export type Design = 'minimal' | 'goal-ring';
-
-const DESIGNS: Design[] = ['minimal', 'goal-ring'];
-
-function designName(d: Design): string {
-  return d;
-}
-
-function nextDesign(d: Design): Design {
-  return DESIGNS[(DESIGNS.indexOf(d) + 1) % DESIGNS.length];
-}
-
-type Mode = 'normal' | 'input';
-
-type PromptKind = 'project' | 'goal';
+export type InitialScreen = 'timer' | 'settings';
+type Mode = 'normal' | 'input' | 'stop-confirm';
 
 interface StatusMsg {
   text: string;
@@ -39,419 +22,199 @@ interface StatusMsg {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function twelveHour(d: Date): { h: number; ampm: string } {
-  const h = d.getHours() % 12 || 12;
-  return { h, ampm: d.getHours() < 12 ? 'AM' : 'PM' };
-}
-
-function fmtTime(d: Date, withSeconds: boolean): string {
-  const { h, ampm } = twelveHour(d);
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = withSeconds ? `:${String(d.getSeconds()).padStart(2, '0')}` : '';
-  return `${String(h).padStart(2, '0')}:${mm}${ss} ${ampm}`;
-}
-
-function fmtClock(d: Date): string {
-  const { h, ampm } = twelveHour(d);
-  return [
-    `${DAYS[d.getDay()]} ${MONTHS[d.getMonth()]} ${String(d.getDate()).padStart(2, ' ')}, ${d.getFullYear()}`,
-    `${String(h).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')} ${ampm}`,
-  ].join('  ');
-}
-
-// ---------- terminal helpers ----------
-
-function bigTime(secs: number): string[] {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  const parts = [
-    String(h).padStart(2, '0'),
-    String(m).padStart(2, '0'),
-    String(s).padStart(2, '0'),
-  ];
-  const out: string[] = Array.from({ length: 5 }, () => '');
-  parts.forEach((part, i) => {
-    for (const ch of part) {
-      const glyph = digit(ch);
-      for (let row = 0; row < 5; row++) {
-        out[row] += glyph[row] + ' ';
-      }
-    }
-    if (i < 2) {
-      const colon = digit(':');
-      for (let row = 0; row < 5; row++) {
-        out[row] += colon[row] + ' ';
-      }
-    }
-  });
-  return out;
-}
-
-function digit(c: string): string[] {
-  const glyphs: Record<string, string[]> = {
-    '0': ['███', '█ █', '█ █', '█ █', '███'],
-    '1': [' █ ', '██ ', ' █ ', ' █ ', '███'],
-    '2': ['███', '  █', '███', '█  ', '███'],
-    '3': ['███', '  █', '███', '  █', '███'],
-    '4': ['█ █', '█ █', '███', '  █', '  █'],
-    '5': ['███', '█  ', '███', '  █', '███'],
-    '6': ['███', '█  ', '███', '█ █', '███'],
-    '7': ['███', '  █', '  █', '  █', '  █'],
-    '8': ['███', '█ █', '███', '█ █', '███'],
-    '9': ['███', '█ █', '███', '  █', '███'],
-    ':': ['   ', ' █ ', '   ', ' █ ', '   '],
-  };
-  return glyphs[c] ?? ['   ', '   ', '   ', '   ', '   '];
-}
-
-// ---------- goal ring (braille) ----------
-
-interface RingCell {
-  ch: string;
-  filled: boolean;
-  plain: boolean;
-}
-
-const BRAILLE_BITS = [0x01, 0x08, 0x02, 0x10, 0x04, 0x20, 0x40, 0x80];
-
-function brailleRing(frac: number, radius: number): RingCell[][] {
-  const outer = radius;
-  const inner = radius * 0.72;
-  const cellCols = Math.ceil((2 * outer + 1) / 2);
-  const cellRows = Math.ceil((2 * outer + 1) / 4);
-  const cx = outer;
-  const cy = outer;
-  const grid: RingCell[][] = [];
-  for (let row = 0; row < cellRows; row++) {
-    const cells: RingCell[] = [];
-    for (let col = 0; col < cellCols; col++) {
-      let mask = 0;
-      let anyFilled = false;
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 2; c++) {
-          const x = col * 2 + c;
-          const y = row * 4 + r;
-          const dist = Math.hypot(x - cx, y - cy);
-          if (dist >= inner && dist <= outer) {
-            const angle = (Math.atan2(x - cx, -(y - cy)) + Math.PI * 2) % (Math.PI * 2);
-            if (angle / (Math.PI * 2) <= frac) {
-              anyFilled = true;
-            }
-            mask |= BRAILLE_BITS[r * 2 + c];
-          }
-        }
-      }
-      if (mask === 0) {
-        cells.push({ ch: ' ', filled: false, plain: true });
-      } else {
-        cells.push({ ch: String.fromCodePoint(0x2800 + mask), filled: anyFilled, plain: false });
-      }
-    }
-    grid.push(cells);
+function formatTime(date: Date, clockFormat: ClockFormat, seconds = false): string {
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const suffix = seconds ? `:${String(date.getSeconds()).padStart(2, '0')}` : '';
+  if (clockFormat === '24h') {
+    return `${String(date.getHours()).padStart(2, '0')}:${minutes}${suffix}`;
   }
-  return grid;
+  const hour = date.getHours() % 12 || 12;
+  return `${String(hour).padStart(2, '0')}:${minutes}${suffix} ${date.getHours() < 12 ? 'AM' : 'PM'}`;
 }
 
-function withPercent(grid: RingCell[][], pct: string): RingCell[][] {
-  const centerRow = Math.floor(grid.length / 2);
-  const row = grid[centerRow];
-  const mid = Math.floor(row.length / 2);
-  if (!row[mid].plain) {
-    return grid;
-  }
-  let start = mid;
-  while (start - 1 >= 0 && row[start - 1].plain) start--;
-  let end = mid;
-  while (end + 1 < row.length && row[end + 1].plain) end++;
-  const runLen = end - start + 1;
-  const pad = Math.max(0, Math.floor((runLen - pct.length) / 2));
-  const text = ' '.repeat(pad) + pct + ' '.repeat(Math.max(0, runLen - pad - pct.length));
-  const next = row.slice();
-  for (let i = 0; i < runLen; i++) {
-    next[start + i] = { ch: text[i] ?? ' ', filled: false, plain: true };
-  }
-  grid[centerRow] = next;
-  return grid;
+function formatClock(date: Date, clockFormat: ClockFormat): string {
+  return `${DAYS[date.getDay()]} ${MONTHS[date.getMonth()]} ${String(date.getDate()).padStart(2, ' ')}, ${date.getFullYear()}  ${formatTime(date, clockFormat, true)}`;
 }
 
-function RingRow({ cells }: { cells: RingCell[] }) {
-  const spans: React.ReactElement[] = [];
-  let i = 0;
-  while (i < cells.length) {
-    const kind: 'filled' | 'track' | 'plain' = cells[i].plain
-      ? 'plain'
-      : cells[i].filled
-        ? 'filled'
-        : 'track';
-    let text = '';
-    let j = i;
-    while (
-      j < cells.length &&
-      (cells[j].plain ? 'plain' : cells[j].filled ? 'filled' : 'track') === kind
-    ) {
-      text += cells[j].ch;
-      j++;
-    }
-    spans.push(
-      kind === 'filled' ? (
-        <Text key={i} color="green" bold>
-          {text}
-        </Text>
-      ) : kind === 'track' ? (
-        <Text key={i} color="gray">
-          {text}
-        </Text>
-      ) : (
-        <Text key={i}>{text}</Text>
-      ),
-    );
-    i = j;
-  }
-  return <Text>{spans}</Text>;
+function GradientText({ row }: { row: string }) {
+  const visible = Math.max(1, [...row].filter((char) => char !== ' ').length - 1);
+  let position = 0;
+  return (
+    <Text bold>
+      {[...row].map((char, index) => {
+        if (char === ' ') return <React.Fragment key={index}> </React.Fragment>;
+        const { r, g, b } = gradientColor(position++ / visible);
+        const hex = `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+        return <Text key={index} color={hex}>{char}</Text>;
+      })}
+    </Text>
+  );
 }
 
-// ---------- views ----------
-
-function TimerLines({ store }: { store: Store }) {
-  const active = store.active;
-  if (!active) {
-    return (
-      <>
-        <Text color="gray" bold>
-          00:00:00
-        </Text>
-        <Text>no active session</Text>
-        <Text>press i to punch in</Text>
-      </>
-    );
-  }
-  const elapsed = elapsedSeconds(active);
-  const rows = bigTime(elapsed);
+function TimerGlyphs({ active, font }: { active: Active | null; font: TimerFont }) {
+  const rows = timerRows(active ? elapsedSeconds(active) : 0, font);
   return (
     <>
-      {rows.map((row, i) => (
-        <Text key={i} color="green" bold>
-          {row}
-        </Text>
-      ))}
-      <Text color="cyan" bold>
-        ▶ {active.project}
-      </Text>
-      <Text>started {fmtTime(active.started_at, true)}</Text>
+      {rows.map((row, index) =>
+        font === 'gradient' ? (
+          <GradientText key={index} row={row} />
+        ) : (
+          <Text key={index} color={active ? 'green' : 'gray'} bold>{row}</Text>
+        ),
+      )}
     </>
   );
 }
 
-function todayStats(store: Store): { count: number; total: number } {
-  const today = todaySessions(store.history);
-  const total = today.reduce((sum, s) => sum + s.duration_secs, 0);
-  return { count: today.length, total };
+function RingRow({ cells }: { cells: Cell[] }) {
+  return (
+    <Text>
+      {cells.map((cell, index) => (
+        <Text key={index} color={cell.cat === 0 ? 'cyan' : cell.cat === -1 ? 'gray' : undefined} bold={cell.cat === 0}>
+          {cell.ch}
+        </Text>
+      ))}
+    </Text>
+  );
 }
 
-function DesignView({ store, design }: { store: Store; design: Design }) {
+function TimerBody({ store, preferences }: { store: Store; preferences: Preferences }) {
+  const active = store.active;
+  const data = ringData(store, preferences.ringConcept);
   return (
     <Box flexDirection="column" alignItems="center">
-      <TimerLines store={store} />
-      {design === 'minimal' && <MinimalBody store={store} />}
-      {design === 'goal-ring' && <GoalRingBody store={store} />}
+      <TimerGlyphs active={active} font={preferences.font} />
+      {active ? (
+        <>
+          <Text color="magenta" bold>● TRACKING</Text>
+          <Text color="cyan" bold>▶ {active.project}</Text>
+          <Text color="gray">started {formatTime(active.started_at, preferences.clockFormat, true)}</Text>
+        </>
+      ) : (
+        <>
+          <Text color="gray">ready when you are</Text>
+          <Text color="cyan">press i to start</Text>
+        </>
+      )}
+      {preferences.ringStyle !== 'none' && (
+        <>
+          <Text>{' '}</Text>
+          {ringGrid(preferences.ringStyle, data).map((row, index) => <RingRow key={index} cells={row} />)}
+          <Text color="gray">{data.label}</Text>
+        </>
+      )}
     </Box>
   );
 }
 
-function MinimalBody({ store }: { store: Store }) {
-  if (!store.active) return null;
-  const { count, total } = todayStats(store);
+function Header({ preferences }: { preferences: Preferences }) {
   return (
-    <>
-      <Text>{' '}</Text>
-      <Text color="gray">
-        {count} sessions today · {formatDuration(total)}
-      </Text>
-    </>
-  );
-}
-
-function GoalRingBody({ store }: { store: Store }) {
-  const goal = store.goal_secs > 0 ? store.goal_secs : DEFAULT_GOAL_SECS;
-  const { total } = todayStats(store);
-  const frac = Math.min(1, total / goal);
-  const pct = Math.round((total / goal) * 100);
-  const grid = withPercent(brailleRing(frac, 9.5), `${pct}%`);
-  return (
-    <>
-      <Text>{' '}</Text>
-      {grid.map((row, i) => (
-        <RingRow key={i} cells={row} />
-      ))}
-      <Text color="gray">
-        today {formatDuration(total)} · goal {formatDuration(goal)}
-      </Text>
-    </>
-  );
-}
-
-function Header({ design }: { design: Design }) {
-  const now = new Date();
-  return (
-    <Box paddingX={1} height={3}>
+    <Box paddingX={1}>
       <Text>
-        <Text color="cyan" bold>
-          PUNCH
-        </Text>
-        <Text>{`  ·  ${fmtClock(now)}`}</Text>
-        <Text color="magenta">{`  ·  design: ${designName(design)}`}</Text>
+        <Text color="cyan" bold>PUNCH</Text>
+        <Text>{`  ·  ${formatClock(new Date(), preferences.clockFormat)}`}</Text>
       </Text>
     </Box>
   );
 }
 
-function Footer({
-  mode,
-  prompt,
-  input,
-  status,
-  design,
-}: {
-  mode: Mode;
-  prompt: PromptKind;
-  input: string;
-  status: StatusMsg | null;
-  design: Design;
-}) {
+function Footer({ mode, input, status, store }: { mode: Mode; input: string; status: StatusMsg | null; store: Store }) {
+  let help = 'a activity · ? help · i start · q quit';
+  if (store.active) help = 'a activity · ? help · o stop · q quit';
+  if (mode === 'input') help = 'enter confirm · esc cancel';
+  if (mode === 'stop-confirm') help = 'enter confirm · esc cancel';
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text color={status ? (status.isError ? 'red' : 'green') : undefined}>
-        {status ? status.text : ' '}
-      </Text>
-      {mode === 'input' ? (
-        <Text>
-          <Text color="cyan" bold>
-            {prompt === 'project' ? 'project name: ' : 'daily goal (hours): '}
-          </Text>
-          <Text color="white">{input}▌</Text>
-        </Text>
-      ) : (
-        <Text>{' '}</Text>
-      )}
-      <Text color="gray">
-        {mode === 'input'
-          ? 'enter confirm · esc cancel'
-          : `q quit · i in · o out · g goal · t design (${designName(design)})`}
-      </Text>
+      <Text color={status ? (status.isError ? 'red' : 'green') : undefined}>{status?.text ?? ' '}</Text>
+      {mode === 'input' && <Text><Text color="cyan" bold>project name: </Text><Text color="white">{input}▌</Text></Text>}
+      {mode === 'stop-confirm' && <Text color="yellow" bold>stop tracking this session? Enter confirm · Esc cancel</Text>}
+      {mode === 'normal' && <Text>{' '}</Text>}
+      <Text color="gray">{help}</Text>
     </Box>
   );
 }
 
-interface ShellProps {
+export interface ShellProps {
   store: Store;
-  design: Design;
+  preferences: Preferences;
   mode: Mode;
-  prompt: PromptKind;
   input: string;
   status: StatusMsg | null;
 }
 
-export function Shell({ store, design, mode, prompt, input, status }: ShellProps) {
+export function Shell({ store, preferences, mode, input, status }: ShellProps) {
   const { rows } = useWindowSize();
   return (
     <Box flexDirection="column" height={rows} width="100%">
-      <Header design={design} />
-      <Box
-        flexGrow={1}
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="center"
-        width="100%"
-      >
-        <DesignView store={store} design={design} />
+      <Header preferences={preferences} />
+      <Box flexGrow={1} flexDirection="column" justifyContent="center" alignItems="center" width="100%">
+        <TimerBody store={store} preferences={preferences} />
       </Box>
-      <Footer mode={mode} prompt={prompt} input={input} status={status} design={design} />
+      <Footer mode={mode} input={input} status={status} store={store} />
     </Box>
   );
 }
 
-export function App() {
+function loadStore(): Store {
+  const loaded = load();
+  return loaded.ok ? loaded.value : { active: null, history: [], goal_secs: 8 * 3600 };
+}
+
+export function App({ initialScreen = 'timer' }: { initialScreen?: InitialScreen } = {}) {
   const { exit } = useApp();
-  const [store, setStore] = React.useState<Store>(() => {
-    const loaded = load();
-    return loaded.ok ? loaded.value : { active: null, history: [], goal_secs: DEFAULT_GOAL_SECS };
+  const [store, setStore] = React.useState<Store>(() => loadStore());
+  const [preferences] = React.useState<Preferences>(() => {
+    const loaded = loadPreferences();
+    return loaded.ok ? loaded.value : DEFAULT_PREFERENCES;
   });
   const [mode, setMode] = React.useState<Mode>('normal');
-  const [prompt, setPrompt] = React.useState<PromptKind>('project');
-  const [design, setDesign] = React.useState<Design>('minimal');
   const [input, setInput] = React.useState('');
   const [status, setStatus] = React.useState<StatusMsg | null>(null);
+  const [screen] = React.useState<InitialScreen>(initialScreen);
 
   useAnimation({ interval: 500 });
 
-  const report = (result: CmdResult) => {
-    setStatus({ text: result.message, isError: !result.ok });
-  };
-
-  const reload = () => {
-    const loaded = load();
-    if (loaded.ok) {
-      setStore(loaded.value);
-    } else {
-      setStatus({ text: loaded.error, isError: true });
-    }
-  };
-
-  const punchOut = () => {
-    report(cmdStop());
-    reload();
-  };
+  const report = (result: CmdResult) => setStatus({ text: result.message, isError: !result.ok });
+  const reload = () => setStore(loadStore());
 
   const submitInput = () => {
     const value = input.trim();
     setInput('');
     setMode('normal');
-    report(prompt === 'project' ? cmdStart(value || null) : cmdGoal(Number(value)));
+    report(cmdStart(value || null));
     reload();
   };
 
-  const beginInput = (kind: PromptKind) => {
-    setPrompt(kind);
-    setInput('');
-    setMode('input');
+  const confirmPunchOut = () => {
+    const active = store.active;
+    const result = cmdStop();
+    if (result.ok && active) {
+      setStatus({ text: `Logged ${formatDuration(elapsedSeconds(active))} to “${active.project}”`, isError: false });
+    } else {
+      report(result);
+    }
+    setMode('normal');
+    reload();
   };
 
   useInput((keyInput, key) => {
+    if (screen !== 'timer') return;
     if (mode === 'input') {
-      if (key.return) {
-        submitInput();
-      } else if (key.escape) {
-        setMode('normal');
-        setInput('');
-      } else if (key.backspace) {
-        setInput((s) => s.slice(0, -1));
-      } else if (keyInput && !key.ctrl && !key.meta) {
-        setInput((s) => s + keyInput);
-      }
+      if (key.return) submitInput();
+      else if (key.escape) { setMode('normal'); setInput(''); }
+      else if (key.backspace) setInput((value) => value.slice(0, -1));
+      else if (keyInput && !key.ctrl && !key.meta) setInput((value) => value + keyInput);
       return;
     }
-    if (keyInput === 'q') {
-      exit();
-    } else if (keyInput === 'i' || keyInput === 'p') {
-      beginInput('project');
-    } else if (keyInput === 'g') {
-      beginInput('goal');
-    } else if (keyInput === 'o') {
-      punchOut();
-    } else if (keyInput === 't' || key.tab) {
-      setDesign((d) => nextDesign(d));
+    if (mode === 'stop-confirm') {
+      if (key.return) confirmPunchOut();
+      else if (key.escape) setMode('normal');
+      return;
     }
+    if (keyInput === 'q') exit();
+    else if (keyInput === 'i') { setInput(''); setMode('input'); }
+    else if (keyInput === 'o' && store.active) setMode('stop-confirm');
   });
 
-  return (
-    <Shell
-      store={store}
-      design={design}
-      mode={mode}
-      prompt={prompt}
-      input={input}
-      status={status}
-    />
-  );
+  return <Shell store={store} preferences={preferences} mode={mode} input={input} status={status} />;
 }
