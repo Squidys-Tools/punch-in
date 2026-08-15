@@ -308,6 +308,24 @@ describe('preference save errors', () => {
 
     expect(frame).toContain('failed to write preferences');
   });
+
+  test('does not overwrite preferences when the existing file cannot be loaded', async () => {
+    const corrupt = '{not valid preferences';
+    writeFileSync(preferencesFile, corrupt, 'utf8');
+
+    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
+    await flush();
+    expect(instance.lastFrame()).toContain('Unable to load preferences');
+    instance.stdin.write(' ');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('Unable to save preferences');
+    expect(readFileSync(preferencesFile, 'utf8')).toBe(corrupt);
+  });
 });
 
 describe('optional project reuse', () => {

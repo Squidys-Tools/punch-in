@@ -370,16 +370,20 @@ export interface AppProps {
 export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
   const { exit } = useApp();
   const [store, setStore] = React.useState<Store>(() => loadStore());
-  const [preferences, setPreferences] = React.useState<Preferences>(() => {
-    const loaded = loadPreferences();
-    return loaded.ok ? loaded.value : DEFAULT_PREFERENCES;
-  });
+  const [preferenceLoad] = React.useState(() => loadPreferences());
+  const preferenceLoadError = preferenceLoad.ok ? null : preferenceLoad.error;
+  const initialPreferences = preferenceLoad.ok ? preferenceLoad.value : DEFAULT_PREFERENCES;
+  const [preferences, setPreferences] = React.useState<Preferences>(initialPreferences);
   const [mode, setMode] = React.useState<Mode>('normal');
   const [input, setInput] = React.useState('');
-  const [status, setStatus] = React.useState<StatusMsg | null>(null);
+  const [status, setStatus] = React.useState<StatusMsg | null>(() =>
+    preferenceLoadError
+      ? { text: `Unable to load preferences: ${preferenceLoadError}`, isError: true }
+      : null,
+  );
   const [screen, setScreen] = React.useState<Screen>(() => {
-    const loaded = loadPreferences();
-    return loaded.ok && !loaded.value.setupComplete ? 'setup' : initialScreen;
+    if (!preferenceLoad.ok) return initialScreen === 'settings' ? 'settings' : 'setup';
+    return !preferenceLoad.value.setupComplete ? 'setup' : initialScreen;
   });
   const [setupStep, setSetupStep] = React.useState(0);
   const [visualFocus, setVisualFocus] = React.useState<VisualFocus>(0);
@@ -414,6 +418,13 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
   };
 
   const saveDraft = (next: Preferences, nextScreen: Screen = 'timer') => {
+    if (preferenceLoadError) {
+      setStatus({
+        text: `Unable to save preferences: repair the preferences file and restart (${preferenceLoadError})`,
+        isError: true,
+      });
+      return;
+    }
     const result = savePreferences(next);
     if (!result.ok) {
       setStatus({ text: result.error, isError: true });
