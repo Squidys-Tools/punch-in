@@ -27,6 +27,10 @@ interface StatusMsg {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+export function isCompactViewport(rows: number, columns: number): boolean {
+  return rows < 19 || columns < 60;
+}
+
 function formatTime(date: Date, clockFormat: ClockFormat, seconds = false): string {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   const suffix = seconds ? `:${String(date.getSeconds()).padStart(2, '0')}` : '';
@@ -83,7 +87,7 @@ function RingRow({ cells }: { cells: Cell[] }) {
   );
 }
 
-function TimerBody({ store, preferences }: { store: Store; preferences: Preferences }) {
+function TimerBody({ store, preferences, compact }: { store: Store; preferences: Preferences; compact: boolean }) {
   const active = store.active;
   const data = ringData(store, preferences.ringConcept);
   return (
@@ -93,7 +97,7 @@ function TimerBody({ store, preferences }: { store: Store; preferences: Preferen
         <>
           <Text color="magenta" bold>● TRACKING</Text>
           <Text color="cyan" bold>▶ {active.project}</Text>
-          <Text color="gray">started {formatTime(active.started_at, preferences.clockFormat, true)}</Text>
+          {!compact && <Text color="gray">started {formatTime(active.started_at, preferences.clockFormat, true)}</Text>}
         </>
       ) : (
         <>
@@ -101,7 +105,7 @@ function TimerBody({ store, preferences }: { store: Store; preferences: Preferen
           <Text color="cyan">press i to start</Text>
         </>
       )}
-      {preferences.ringStyle !== 'none' && (
+      {!compact && preferences.ringStyle !== 'none' && (
         <>
           <Text>{' '}</Text>
           {ringGrid(preferences.ringStyle, data).map((row, index) => <RingRow key={index} cells={row} />)}
@@ -296,12 +300,13 @@ export interface ShellProps {
 }
 
 export function Shell({ store, preferences, mode, input, status }: ShellProps) {
-  const { rows } = useWindowSize();
+  const { rows, columns } = useWindowSize();
+  const compact = isCompactViewport(rows, columns);
   return (
     <Box flexDirection="column" height={rows} width="100%">
       <Header preferences={preferences} />
       <Box flexGrow={1} flexDirection="column" justifyContent="center" alignItems="center" width="100%">
-        <TimerBody store={store} preferences={preferences} />
+        <TimerBody store={store} preferences={preferences} compact={compact} />
       </Box>
       <Footer mode={mode} input={input} status={status} store={store} />
     </Box>
@@ -440,7 +445,11 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       return;
     }
     if (keyInput === 'q') exit();
-    else if (keyInput === 'i') { setInput(''); setMode('input'); }
+    else if (keyInput === 'i') {
+      const recent = store.history.slice().sort((a, b) => b.started_at.getTime() - a.started_at.getTime())[0]?.project;
+      setInput(preferences.reuseLastProject ? recent ?? '' : '');
+      setMode('input');
+    }
     else if (keyInput === 'o' && store.active) setMode('stop-confirm');
     else if (keyInput === '?') setScreen('help');
     else if (keyInput === 'a') { setActivityDate(new Date()); setActivityTab('sessions'); setScreen('activity'); }

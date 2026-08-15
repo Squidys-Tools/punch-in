@@ -226,3 +226,28 @@ describe('help and activity', () => {
     expect(frame).toContain('Live');
   });
 });
+
+describe('optional project reuse', () => {
+  test('prefills the most recent project only when enabled', async () => {
+    const started = new Date(Date.now() - 90 * 60 * 1000);
+    writeFileSync(dataFile, JSON.stringify({
+      active: null,
+      history: [{
+        project: 'Previous project',
+        started_at: started,
+        ended_at: new Date(started.getTime() + 30 * 60 * 1000),
+        duration_secs: 30 * 60,
+      }],
+    }), 'utf8');
+    savePreferencesPath(preferencesFile, { ...DEFAULT_PREFERENCES, setupComplete: true, reuseLastProject: true });
+
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('i');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('project name: Previous project');
+  });
+});
