@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import React from 'react';
 import { render } from 'ink-testing-library';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, unlinkSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { App } from '../src/views.js';
@@ -104,5 +104,57 @@ describe('timer interactions', () => {
     const stored = JSON.parse(readFileSync(dataFile, 'utf8'));
     expect(stored.active).toBeNull();
     expect(stored.history).toHaveLength(1);
+  });
+});
+
+describe('setup and settings', () => {
+  test('first launch requires setup before showing the timer', async () => {
+    unlinkSync(preferencesFile);
+    const instance = render(React.createElement(App));
+    await flush();
+    expect(instance.lastFrame()).toContain('WELCOME TO PUNCH');
+    expect(instance.lastFrame()).not.toContain('ready when you are');
+
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('ready when you are');
+    expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).setupComplete).toBe(true);
+  });
+
+  test('settings uses Space to change and Enter to save', async () => {
+    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
+    await flush();
+    expect(instance.lastFrame()).toContain('SETTINGS');
+    expect(instance.lastFrame()).toContain('Space change');
+
+    instance.stdin.write(' ');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
+    instance.unmount();
+
+    expect(saved.clockFormat).toBe('24h');
+  });
+
+  test('Esc discards unsaved settings and returns to the timer', async () => {
+    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
+    await flush();
+    instance.stdin.write(' ');
+    await flush();
+    instance.stdin.write('\x1b');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('ready when you are');
+    expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).clockFormat).toBe('12h');
   });
 });

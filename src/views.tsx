@@ -4,15 +4,18 @@ import { start as cmdStart, stop as cmdStop, type CmdResult } from './commands.j
 import { elapsedSeconds, formatDuration, load, type Active, type Store } from './store.js';
 import {
   DEFAULT_PREFERENCES,
+  savePreferences,
   type ClockFormat,
   type Preferences,
   loadPreferences,
 } from './preferences.js';
-import { gradientColor, timerRows, type TimerFont } from './fonts.js';
-import { ringData, ringGrid, type Cell } from './ring.js';
+import { FONTS, gradientColor, timerRows, type TimerFont } from './fonts.js';
+import { RING_CONCEPTS, RING_STYLES, ringData, ringGrid, type Cell, type RingConcept, type RingStyle } from './ring.js';
 
 export type InitialScreen = 'timer' | 'settings';
 type Mode = 'normal' | 'input' | 'stop-confirm';
+type Screen = 'timer' | 'setup' | 'settings';
+type VisualFocus = 0 | 1 | 2;
 
 interface StatusMsg {
   text: string;
@@ -134,6 +137,81 @@ function Footer({ mode, input, status, store }: { mode: Mode; input: string; sta
   );
 }
 
+function clockLabel(value: ClockFormat): string {
+  return value === '12h' ? '12-hour' : '24-hour';
+}
+
+function cycle<T>(values: readonly T[], value: T): T {
+  return values[(values.indexOf(value) + 1) % values.length];
+}
+
+function setupValue(preferences: Preferences, step: number, focus: VisualFocus): string {
+  if (step === 0) return clockLabel(preferences.clockFormat);
+  if (step === 2) return preferences.reuseLastProject ? 'on' : 'off';
+  if (focus === 0) return preferences.font;
+  if (focus === 1) return preferences.ringStyle;
+  return preferences.ringConcept;
+}
+
+function SetupScreen({ preferences, step, focus }: { preferences: Preferences; step: number; focus: VisualFocus }) {
+  const title = step === 0 ? 'CLOCK FORMAT' : step === 1 ? 'VISUAL STYLE' : 'STARTING SESSIONS';
+  return (
+    <Box flexDirection="column" alignItems="center">
+      <Text color="cyan" bold>WELCOME TO PUNCH</Text>
+      <Text color="gray">make the timer feel like yours · step {step + 1} of 3</Text>
+      <Text>{' '}</Text>
+      <Text color="magenta" bold>{title}</Text>
+      {step === 0 && <Text><Text color="yellow">› </Text>clock: <Text color="green" bold>{setupValue(preferences, step, focus)}</Text></Text>}
+      {step === 1 && (
+        <>
+          <Text color={focus === 0 ? 'yellow' : 'gray'}>{focus === 0 ? '›' : ' '} font: {preferences.font}</Text>
+          <Text color={focus === 1 ? 'yellow' : 'gray'}>{focus === 1 ? '›' : ' '} ring: {preferences.ringStyle}</Text>
+          <Text color={focus === 2 ? 'yellow' : 'gray'}>{focus === 2 ? '›' : ' '} concept: {preferences.ringConcept}</Text>
+        </>
+      )}
+      {step === 2 && <Text><Text color="yellow">› </Text>reuse last project: <Text color="green" bold>{setupValue(preferences, step, focus)}</Text></Text>}
+      <Text>{' '}</Text>
+      <Text color="gray">Space change · Enter continue · Esc back</Text>
+    </Box>
+  );
+}
+
+type SettingKey = 'clockFormat' | 'font' | 'ringStyle' | 'ringConcept' | 'reuseLastProject';
+const SETTING_KEYS: SettingKey[] = ['clockFormat', 'font', 'ringStyle', 'ringConcept', 'reuseLastProject'];
+
+function settingLabel(key: SettingKey): string {
+  switch (key) {
+    case 'clockFormat': return 'clock format';
+    case 'font': return 'timer font';
+    case 'ringStyle': return 'ring style';
+    case 'ringConcept': return 'ring concept';
+    case 'reuseLastProject': return 'reuse last project';
+  }
+}
+
+function settingValue(preferences: Preferences, key: SettingKey): string {
+  if (key === 'clockFormat') return clockLabel(preferences.clockFormat);
+  if (key === 'reuseLastProject') return preferences.reuseLastProject ? 'on' : 'off';
+  return preferences[key];
+}
+
+function SettingsScreen({ preferences, focus }: { preferences: Preferences; focus: number }) {
+  return (
+    <Box flexDirection="column" alignItems="center">
+      <Text color="cyan" bold>SETTINGS</Text>
+      <Text color="gray">customize the timer · changes are saved together</Text>
+      <Text>{' '}</Text>
+      {SETTING_KEYS.map((key, index) => (
+        <Text key={key} color={focus === index ? 'yellow' : undefined}>
+          {focus === index ? '› ' : '  '}{settingLabel(key)}: <Text bold={focus === index}>{settingValue(preferences, key)}</Text>
+        </Text>
+      ))}
+      <Text>{' '}</Text>
+      <Text color="gray">↑↓ move · Space change · Enter save · Esc cancel</Text>
+    </Box>
+  );
+}
+
 export interface ShellProps {
   store: Store;
   preferences: Preferences;
@@ -160,17 +238,28 @@ function loadStore(): Store {
   return loaded.ok ? loaded.value : { active: null, history: [], goal_secs: 8 * 3600 };
 }
 
-export function App({ initialScreen = 'timer' }: { initialScreen?: InitialScreen } = {}) {
+export interface AppProps {
+  initialScreen?: InitialScreen;
+}
+
+export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
   const { exit } = useApp();
   const [store, setStore] = React.useState<Store>(() => loadStore());
-  const [preferences] = React.useState<Preferences>(() => {
+  const [preferences, setPreferences] = React.useState<Preferences>(() => {
     const loaded = loadPreferences();
     return loaded.ok ? loaded.value : DEFAULT_PREFERENCES;
   });
   const [mode, setMode] = React.useState<Mode>('normal');
   const [input, setInput] = React.useState('');
   const [status, setStatus] = React.useState<StatusMsg | null>(null);
-  const [screen] = React.useState<InitialScreen>(initialScreen);
+  const [screen, setScreen] = React.useState<Screen>(() => {
+    const loaded = loadPreferences();
+    return loaded.ok && !loaded.value.setupComplete ? 'setup' : initialScreen;
+  });
+  const [setupStep, setSetupStep] = React.useState(0);
+  const [visualFocus, setVisualFocus] = React.useState<VisualFocus>(0);
+  const [settingsFocus, setSettingsFocus] = React.useState(0);
+  const [draftPreferences, setDraftPreferences] = React.useState(preferences);
 
   useAnimation({ interval: 500 });
 
@@ -197,8 +286,59 @@ export function App({ initialScreen = 'timer' }: { initialScreen?: InitialScreen
     reload();
   };
 
+  const saveDraft = (next: Preferences, nextScreen: Screen = 'timer') => {
+    const result = savePreferences(next);
+    if (!result.ok) {
+      setStatus({ text: result.error, isError: true });
+      return;
+    }
+    setPreferences(next);
+    setDraftPreferences(next);
+    setScreen(nextScreen);
+  };
+
+  const changeSetupChoice = () => {
+    setDraftPreferences((current) => {
+      if (setupStep === 0) return { ...current, clockFormat: current.clockFormat === '12h' ? '24h' : '12h' };
+      if (setupStep === 2) return { ...current, reuseLastProject: !current.reuseLastProject };
+      if (visualFocus === 0) return { ...current, font: cycle(FONTS, current.font) };
+      if (visualFocus === 1) return { ...current, ringStyle: cycle(RING_STYLES, current.ringStyle) };
+      return { ...current, ringConcept: cycle(RING_CONCEPTS, current.ringConcept) };
+    });
+  };
+
+  const changeSetting = () => {
+    const key = SETTING_KEYS[settingsFocus];
+    setDraftPreferences((current) => {
+      if (key === 'clockFormat') return { ...current, clockFormat: current.clockFormat === '12h' ? '24h' : '12h' };
+      if (key === 'font') return { ...current, font: cycle(FONTS, current.font) };
+      if (key === 'ringStyle') return { ...current, ringStyle: cycle(RING_STYLES, current.ringStyle) };
+      if (key === 'ringConcept') return { ...current, ringConcept: cycle(RING_CONCEPTS, current.ringConcept) };
+      return { ...current, reuseLastProject: !current.reuseLastProject };
+    });
+  };
+
   useInput((keyInput, key) => {
-    if (screen !== 'timer') return;
+    if (screen === 'setup') {
+      if (keyInput === ' ') changeSetupChoice();
+      else if (key.return) {
+        if (setupStep < 2) setSetupStep((value) => value + 1);
+        else saveDraft({ ...draftPreferences, setupComplete: true });
+      } else if (key.escape && setupStep > 0) {
+        setSetupStep((value) => value - 1);
+      } else if (setupStep === 1 && (key.leftArrow || key.rightArrow)) {
+        setVisualFocus((value) => key.rightArrow ? ((value + 1) % 3) as VisualFocus : ((value + 2) % 3) as VisualFocus);
+      }
+      return;
+    }
+    if (screen === 'settings') {
+      if (key.upArrow) setSettingsFocus((value) => (value + SETTING_KEYS.length - 1) % SETTING_KEYS.length);
+      else if (key.downArrow) setSettingsFocus((value) => (value + 1) % SETTING_KEYS.length);
+      else if (keyInput === ' ') changeSetting();
+      else if (key.return) saveDraft(draftPreferences);
+      else if (key.escape) { setDraftPreferences(preferences); setScreen('timer'); }
+      return;
+    }
     if (mode === 'input') {
       if (key.return) submitInput();
       else if (key.escape) { setMode('normal'); setInput(''); }
@@ -216,5 +356,7 @@ export function App({ initialScreen = 'timer' }: { initialScreen?: InitialScreen
     else if (keyInput === 'o' && store.active) setMode('stop-confirm');
   });
 
+  if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} />;
+  if (screen === 'settings') return <SettingsScreen preferences={draftPreferences} focus={settingsFocus} />;
   return <Shell store={store} preferences={preferences} mode={mode} input={input} status={status} />;
-}
+};

@@ -15,6 +15,7 @@ Commands:
   out            Punch out: stop the active session and record it
   status         Show the active session and elapsed time
   goal [HOURS]   Show or set the daily goal (e.g. "punch goal 6" for 6 hours)
+  settings       Open the interactive settings screen
   help           Print this help
 
 Options:
@@ -67,6 +68,18 @@ function main(): void {
     case 'goal': {
       const raw = args[1];
       printResult(goal(raw === undefined ? null : Number(raw)));
+      return;
+    }
+    case 'settings': {
+      if (!process.stdin.isTTY) {
+        console.error('error: settings requires an interactive terminal');
+        process.exit(1);
+      }
+      const { waitUntilExit } = render(
+        React.createElement(App, { initialScreen: 'settings' }),
+        { alternateScreen: true },
+      );
+      waitUntilExit();
       return;
     }
     case 'help':
