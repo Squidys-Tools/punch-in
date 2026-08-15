@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import React from 'react';
 import { render } from 'ink-testing-library';
-import { mkdtempSync, readFileSync, rmSync, unlinkSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { App } from '../src/views.js';
@@ -156,5 +156,73 @@ describe('setup and settings', () => {
 
     expect(frame).toContain('ready when you are');
     expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).clockFormat).toBe('12h');
+  });
+});
+
+describe('help and activity', () => {
+  test('Help opens as a read-only overlay and Esc returns to the timer', async () => {
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('?');
+    await flush();
+    expect(instance.lastFrame()).toContain('HELP');
+    expect(instance.lastFrame()).toContain('a open Activity');
+    expect(instance.lastFrame()).toContain('Esc close');
+    instance.stdin.write('\x1b');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('ready when you are');
+    expect(frame).not.toContain('HELP');
+  });
+
+  test('Activity opens on today sessions and Tab switches to analytics', async () => {
+    const now = new Date();
+    const started = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0);
+    writeFileSync(dataFile, JSON.stringify({
+      active: null,
+      history: [{
+        project: 'Research',
+        started_at: started,
+        ended_at: new Date(started.getTime() + 45 * 60 * 1000),
+        duration_secs: 45 * 60,
+      }],
+    }), 'utf8');
+
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('a');
+    await flush();
+    expect(instance.lastFrame()).toContain('ACTIVITY');
+    expect(instance.lastFrame()).toContain('SESSIONS');
+    expect(instance.lastFrame()).toContain('Research');
+    instance.stdin.write('\t');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('ANALYTICS');
+    expect(frame).toContain('TOTAL');
+    expect(frame).toContain('AVERAGE');
+    expect(frame).toContain('Research');
+  });
+
+  test('Activity shows an active session without inventing a stop time', async () => {
+    const started = new Date(Date.now() - 5 * 60 * 1000);
+    writeFileSync(dataFile, JSON.stringify({
+      active: { project: 'Live', started_at: started },
+      history: [],
+    }), 'utf8');
+
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('a');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('ACTIVE');
+    expect(frame).toContain('Live');
   });
 });

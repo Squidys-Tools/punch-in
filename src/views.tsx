@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text, useAnimation, useApp, useInput, useWindowSize } from 'ink';
 import { start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
 import { elapsedSeconds, formatDuration, load, type Active, type Store } from './store.js';
+import { activityForDay, nextDay, previousDay, type ActivitySummary } from './activity.js';
 import {
   DEFAULT_PREFERENCES,
   savePreferences,
@@ -14,7 +15,8 @@ import { RING_CONCEPTS, RING_STYLES, ringData, ringGrid, type Cell, type RingCon
 
 export type InitialScreen = 'timer' | 'settings';
 type Mode = 'normal' | 'input' | 'stop-confirm';
-type Screen = 'timer' | 'setup' | 'settings';
+type Screen = 'timer' | 'setup' | 'settings' | 'help' | 'activity';
+type ActivityTab = 'sessions' | 'analytics';
 type VisualFocus = 0 | 1 | 2;
 
 interface StatusMsg {
@@ -212,6 +214,79 @@ function SettingsScreen({ preferences, focus }: { preferences: Preferences; focu
   );
 }
 
+function dateHeading(date: Date): string {
+  return `${DAYS[date.getDay()]} ${MONTHS[date.getMonth()]} ${String(date.getDate()).padStart(2, ' ')}, ${date.getFullYear()}`;
+}
+
+function ActivitySessions({ summary, preferences, active }: { summary: ActivitySummary; preferences: Preferences; active: Active | null }) {
+  return (
+    <>
+      <Text color="gray">{formatDuration(summary.totalSecs)} tracked · {summary.sessionCount} sessions</Text>
+      <Text>{' '}</Text>
+      {summary.sessions.map((session, index) => (
+        <Text key={`${session.started_at.toISOString()}-${index}`}>
+          {'  '}{session.project.padEnd(16, ' ')}{formatTime(session.started_at, preferences.clockFormat)} → {formatTime(session.ended_at, preferences.clockFormat)}   {formatDuration(session.duration_secs)}
+        </Text>
+      ))}
+      {active && <Text color="magenta" bold>{'  '}{active.project.padEnd(16, ' ')}{formatTime(active.started_at, preferences.clockFormat)} → ACTIVE   {formatDuration(elapsedSeconds(active))}</Text>}
+      {summary.sessions.length === 0 && !active && <Text color="gray">no sessions logged on this day</Text>}
+    </>
+  );
+}
+
+function ActivityAnalytics({ summary }: { summary: ActivitySummary }) {
+  const bars = Array.from({ length: 9 }, (_, index) => {
+    const hour = index + 8;
+    const count = summary.sessions.filter((session) => session.started_at.getHours() === hour).length;
+    return <Text key={hour} color={count ? 'cyan' : 'gray'}>{count ? '██' : '··'}</Text>;
+  });
+  return (
+    <>
+      <Text color="gray">{summary.totalSecs ? formatDuration(summary.totalSecs) : '0s'} total · {summary.sessionCount} sessions</Text>
+      <Text>{' '}</Text>
+      <Text color="yellow">TOTAL      <Text color="white">{formatDuration(summary.totalSecs)}</Text></Text>
+      <Text color="yellow">AVERAGE    <Text color="white">{formatDuration(summary.averageSecs)}</Text></Text>
+      <Text color="yellow">TOP PROJECT<Text color="white"> {summary.topProject?.project ?? '—'}</Text></Text>
+      <Text>{' '}</Text>
+      <Text color="gray">ACTIVITY  08 09 10 11 12 13 14 15 16</Text>
+      <Text>          {bars}</Text>
+      <Text>{' '}</Text>
+      <Text color="gray">PROJECTS</Text>
+      {summary.projectTotals.length === 0 ? <Text color="gray">no project data</Text> : summary.projectTotals.map((item) => <Text key={item.project}>  {item.project.padEnd(16, ' ')} {formatDuration(item.durationSecs)}</Text>)}
+    </>
+  );
+}
+
+function ActivityScreen({ store, preferences, date, tab }: { store: Store; preferences: Preferences; date: Date; tab: ActivityTab }) {
+  const summary = activityForDay(store.history, date);
+  return (
+    <Box flexDirection="column" alignItems="center">
+      <Text color="cyan" bold>ACTIVITY · {tab === 'sessions' ? 'SESSIONS' : 'ANALYTICS'}</Text>
+      <Text color="magenta" bold>{dateHeading(date)}</Text>
+      <Text>{' '}</Text>
+      {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active} /> : <ActivityAnalytics summary={summary} />}
+      <Text>{' '}</Text>
+      <Text color="gray">Tab {tab === 'sessions' ? 'analytics' : 'sessions'} · ←→ day · Esc back</Text>
+    </Box>
+  );
+}
+
+function HelpScreen() {
+  return (
+    <Box flexDirection="column" alignItems="center">
+      <Text color="cyan" bold>HELP</Text>
+      <Text>{' '}</Text>
+      <Text><Text color="yellow">i</Text> start a session</Text>
+      <Text><Text color="yellow">o</Text> stop the active session</Text>
+      <Text><Text color="yellow">a</Text> open Activity</Text>
+      <Text><Text color="yellow">?</Text> open this help</Text>
+      <Text><Text color="yellow">q</Text> quit</Text>
+      <Text>{' '}</Text>
+      <Text color="gray">Settings: punch settings · Esc close</Text>
+    </Box>
+  );
+}
+
 export interface ShellProps {
   store: Store;
   preferences: Preferences;
@@ -260,6 +335,8 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
   const [visualFocus, setVisualFocus] = React.useState<VisualFocus>(0);
   const [settingsFocus, setSettingsFocus] = React.useState(0);
   const [draftPreferences, setDraftPreferences] = React.useState(preferences);
+  const [activityDate, setActivityDate] = React.useState(() => new Date());
+  const [activityTab, setActivityTab] = React.useState<ActivityTab>('sessions');
 
   useAnimation({ interval: 500 });
 
@@ -339,6 +416,17 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       else if (key.escape) { setDraftPreferences(preferences); setScreen('timer'); }
       return;
     }
+    if (screen === 'help') {
+      if (key.escape) setScreen('timer');
+      return;
+    }
+    if (screen === 'activity') {
+      if (key.escape) setScreen('timer');
+      else if (key.tab) setActivityTab((value) => value === 'sessions' ? 'analytics' : 'sessions');
+      else if (key.leftArrow) setActivityDate((value) => previousDay(value));
+      else if (key.rightArrow) setActivityDate((value) => nextDay(value));
+      return;
+    }
     if (mode === 'input') {
       if (key.return) submitInput();
       else if (key.escape) { setMode('normal'); setInput(''); }
@@ -354,9 +442,13 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     if (keyInput === 'q') exit();
     else if (keyInput === 'i') { setInput(''); setMode('input'); }
     else if (keyInput === 'o' && store.active) setMode('stop-confirm');
+    else if (keyInput === '?') setScreen('help');
+    else if (keyInput === 'a') { setActivityDate(new Date()); setActivityTab('sessions'); setScreen('activity'); }
   });
 
   if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} />;
   if (screen === 'settings') return <SettingsScreen preferences={draftPreferences} focus={settingsFocus} />;
+  if (screen === 'help') return <HelpScreen />;
+  if (screen === 'activity') return <ActivityScreen store={store} preferences={preferences} date={activityDate} tab={activityTab} />;
   return <Shell store={store} preferences={preferences} mode={mode} input={input} status={status} />;
 };
