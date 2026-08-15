@@ -8,6 +8,7 @@ import {
   isSameDay,
   loadPath,
   savePath,
+  sessionsOn,
   startOfDay,
   todaySessions,
   totalOn,
@@ -115,6 +116,24 @@ describe('save/load roundtrip', () => {
 });
 
 describe('date helpers', () => {
+  test('sessionsOn filters by a supplied local calendar day', () => {
+    const date = new Date(2026, 7, 14, 12, 0, 0);
+    const matching = makeSession(
+      new Date(2026, 7, 14, 9, 0, 0),
+      new Date(2026, 7, 14, 10, 0, 0),
+      'today',
+      3600,
+    );
+    const other = makeSession(
+      new Date(2026, 7, 13, 23, 0, 0),
+      new Date(2026, 7, 14, 1, 0, 0),
+      'yesterday',
+      7200,
+    );
+
+    expect(sessionsOn([matching, other], date)).toEqual([matching]);
+  });
+
   test('isSameDay compares calendar days', () => {
     const a = new Date(2026, 7, 14, 23, 59, 59);
     const b = new Date(2026, 7, 14, 0, 0, 0);
