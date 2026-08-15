@@ -225,6 +225,47 @@ describe('help and activity', () => {
     expect(frame).toContain('ACTIVE');
     expect(frame).toContain('Live');
   });
+
+  test('Activity hides the active session when viewing another day', async () => {
+    const started = new Date(Date.now() - 5 * 60 * 1000);
+    writeFileSync(dataFile, JSON.stringify({
+      active: { project: 'Live', started_at: started },
+      history: [],
+    }), 'utf8');
+
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('a');
+    await flush();
+    instance.stdin.write('\x1b[D');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).not.toContain('ACTIVE');
+    expect(frame).not.toContain('Live');
+  });
+});
+
+describe('preference save errors', () => {
+  test('shows a preference save error while setup remains open', async () => {
+    const blockedParent = path.join(dir, 'blocked-parent');
+    writeFileSync(blockedParent, 'not a directory', 'utf8');
+    process.env.PUNCH_PREFERENCES = path.join(blockedParent, 'preferences.json');
+
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('failed to write preferences');
+  });
 });
 
 describe('optional project reuse', () => {

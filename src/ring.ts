@@ -43,7 +43,7 @@ export function ringGrid(style: RingStyle, data: RingData): Cell[][] {
   const rows = 6;
   const cols = style === 'pixel' ? 21 : 23;
   const grid: Cell[][] = [];
-  const fill = Math.round(data.frac * (cols * 2 + rows * 2));
+  const fill = Math.round(data.frac * (cols * 2 + rows * 2 - 4));
   for (let row = 0; row < rows; row++) {
     const cells: Cell[] = [];
     for (let col = 0; col < cols; col++) {
@@ -52,7 +52,13 @@ export function ringGrid(style: RingStyle, data: RingData): Cell[][] {
         cells.push({ ch: ' ', cat: -2 });
         continue;
       }
-      const perimeterIndex = row === 0 ? col : row < rows - 1 && col === cols - 1 ? cols + row - 1 : row === rows - 1 ? cols + rows - 2 - col : rows + cols + rows - 3 - row;
+      const perimeterIndex = row === 0
+        ? col
+        : col === cols - 1
+          ? cols + row - 1
+          : row === rows - 1
+            ? cols + rows - 1 + (cols - 2 - col)
+            : cols + rows - 1 + (cols - 1) + (rows - 2 - row);
       const filled = perimeterIndex < fill;
       cells.push({ ch: filled ? (style === 'pixel' ? '█' : '⠿') : '·', cat: filled ? 0 : -1 });
     }

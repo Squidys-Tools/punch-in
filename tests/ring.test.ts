@@ -24,4 +24,11 @@ describe('progress rings', () => {
       expect(data.label.length).toBeGreaterThan(0);
     }
   });
+
+  test('ring progress does not become full before the fraction reaches one', () => {
+    const cells = ringGrid('smooth', { frac: 0.9, center: '90%', label: '' }).flat();
+    const perimeter = cells.filter((cell) => cell.cat === 0 || cell.cat === -1);
+    expect(perimeter.some((cell) => cell.cat === -1)).toBe(true);
+    expect(ringGrid('smooth', { frac: 1, center: '100%', label: '' }).flat().some((cell) => cell.cat === -1)).toBe(false);
+  });
 });

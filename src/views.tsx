@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Text, useAnimation, useApp, useInput, useWindowSize } from 'ink';
 import { start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
-import { elapsedSeconds, formatDuration, load, type Active, type Store } from './store.js';
+import { elapsedSeconds, formatDuration, isSameDay, load, type Active, type Store } from './store.js';
 import { activityForDay, nextDay, previousDay, type ActivitySummary } from './activity.js';
 import {
   DEFAULT_PREFERENCES,
@@ -159,7 +159,7 @@ function setupValue(preferences: Preferences, step: number, focus: VisualFocus):
   return preferences.ringConcept;
 }
 
-function SetupScreen({ preferences, step, focus }: { preferences: Preferences; step: number; focus: VisualFocus }) {
+function SetupScreen({ preferences, step, focus, status }: { preferences: Preferences; step: number; focus: VisualFocus; status: StatusMsg | null }) {
   const title = step === 0 ? 'CLOCK FORMAT' : step === 1 ? 'VISUAL STYLE' : 'STARTING SESSIONS';
   return (
     <Box flexDirection="column" alignItems="center">
@@ -167,6 +167,7 @@ function SetupScreen({ preferences, step, focus }: { preferences: Preferences; s
       <Text color="gray">make the timer feel like yours · step {step + 1} of 3</Text>
       <Text>{' '}</Text>
       <Text color="magenta" bold>{title}</Text>
+      {status && <Text color="red">{status.text}</Text>}
       {step === 0 && <Text><Text color="yellow">› </Text>clock: <Text color="green" bold>{setupValue(preferences, step, focus)}</Text></Text>}
       {step === 1 && (
         <>
@@ -201,11 +202,12 @@ function settingValue(preferences: Preferences, key: SettingKey): string {
   return preferences[key];
 }
 
-function SettingsScreen({ preferences, focus }: { preferences: Preferences; focus: number }) {
+function SettingsScreen({ preferences, focus, status }: { preferences: Preferences; focus: number; status: StatusMsg | null }) {
   return (
     <Box flexDirection="column" alignItems="center">
       <Text color="cyan" bold>SETTINGS</Text>
       <Text color="gray">customize the timer · changes are saved together</Text>
+      {status && <Text color="red">{status.text}</Text>}
       <Text>{' '}</Text>
       {SETTING_KEYS.map((key, index) => (
         <Text key={key} color={focus === index ? 'yellow' : undefined}>
@@ -268,7 +270,7 @@ function ActivityScreen({ store, preferences, date, tab }: { store: Store; prefe
       <Text color="cyan" bold>ACTIVITY · {tab === 'sessions' ? 'SESSIONS' : 'ANALYTICS'}</Text>
       <Text color="magenta" bold>{dateHeading(date)}</Text>
       <Text>{' '}</Text>
-      {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active} /> : <ActivityAnalytics summary={summary} />}
+      {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active && isSameDay(store.active.started_at, date) ? store.active : null} /> : <ActivityAnalytics summary={summary} />}
       <Text>{' '}</Text>
       <Text color="gray">Tab {tab === 'sessions' ? 'analytics' : 'sessions'} · ←→ day · Esc back</Text>
     </Box>
@@ -455,8 +457,8 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     else if (keyInput === 'a') { setActivityDate(new Date()); setActivityTab('sessions'); setScreen('activity'); }
   });
 
-  if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} />;
-  if (screen === 'settings') return <SettingsScreen preferences={draftPreferences} focus={settingsFocus} />;
+  if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} status={status} />;
+  if (screen === 'settings') return <SettingsScreen preferences={draftPreferences} focus={settingsFocus} status={status} />;
   if (screen === 'help') return <HelpScreen />;
   if (screen === 'activity') return <ActivityScreen store={store} preferences={preferences} date={activityDate} tab={activityTab} />;
   return <Shell store={store} preferences={preferences} mode={mode} input={input} status={status} />;
