@@ -128,8 +128,8 @@ function Header({ preferences }: { preferences: Preferences }) {
 }
 
 function Footer({ mode, input, status, store }: { mode: Mode; input: string; status: StatusMsg | null; store: Store }) {
-  let help = 'a activity · ? help · i start · q quit';
-  if (store.active) help = 'a activity · ? help · o stop · q quit';
+  let help = 'a activity · s settings · ? help · i start · q quit';
+  if (store.active) help = 'a activity · s settings · ? help · o stop · q quit';
   if (mode === 'input') help = 'enter confirm · esc cancel';
   if (mode === 'stop-confirm') help = 'enter confirm · esc cancel';
   return (
@@ -162,24 +162,26 @@ function setupValue(preferences: Preferences, step: number, focus: VisualFocus):
 function SetupScreen({ preferences, step, focus, status }: { preferences: Preferences; step: number; focus: VisualFocus; status: StatusMsg | null }) {
   const title = step === 0 ? 'CLOCK FORMAT' : step === 1 ? 'VISUAL STYLE' : 'STARTING SESSIONS';
   return (
-    <Box flexDirection="column" alignItems="center">
-      <Text color="cyan" bold>WELCOME TO PUNCH</Text>
-      <Text color="gray">make the timer feel like yours · step {step + 1} of 3</Text>
-      <Text>{' '}</Text>
-      <Text color="magenta" bold>{title}</Text>
-      {status && <Text color="red">{status.text}</Text>}
-      {step === 0 && <Text><Text color="yellow">› </Text>clock: <Text color="green" bold>{setupValue(preferences, step, focus)}</Text></Text>}
-      {step === 1 && (
-        <>
-          <Text color={focus === 0 ? 'yellow' : 'gray'}>{focus === 0 ? '›' : ' '} font: {preferences.font}</Text>
-          <Text color={focus === 1 ? 'yellow' : 'gray'}>{focus === 1 ? '›' : ' '} ring: {preferences.ringStyle}</Text>
-          <Text color={focus === 2 ? 'yellow' : 'gray'}>{focus === 2 ? '›' : ' '} concept: {preferences.ringConcept}</Text>
-        </>
-      )}
-      {step === 2 && <Text><Text color="yellow">› </Text>reuse last project: <Text color="green" bold>{setupValue(preferences, step, focus)}</Text></Text>}
-      <Text>{' '}</Text>
-      <Text color="gray">Space change · Enter continue · Esc back</Text>
-    </Box>
+    <CenteredScreen>
+      <Box flexDirection="column" alignItems="center">
+        <Text color="cyan" bold>WELCOME TO PUNCH</Text>
+        <Text color="gray">make the timer feel like yours · step {step + 1} of 3</Text>
+        <Text>{' '}</Text>
+        <Text color="magenta" bold>{title}</Text>
+        {status && <Text color="red">{status.text}</Text>}
+        {step === 0 && <Text><Text color="yellow">› </Text>clock: <Text color="green" bold>{setupValue(preferences, step, focus)}</Text></Text>}
+        {step === 1 && (
+          <>
+            <Text color={focus === 0 ? 'yellow' : 'gray'}>{focus === 0 ? '›' : ' '} font: {preferences.font}</Text>
+            <Text color={focus === 1 ? 'yellow' : 'gray'}>{focus === 1 ? '›' : ' '} ring: {preferences.ringStyle}</Text>
+            <Text color={focus === 2 ? 'yellow' : 'gray'}>{focus === 2 ? '›' : ' '} concept: {preferences.ringConcept}</Text>
+          </>
+        )}
+        {step === 2 && <Text><Text color="yellow">› </Text>reuse last project: <Text color="green" bold>{setupValue(preferences, step, focus)}</Text></Text>}
+        <Text>{' '}</Text>
+        <Text color="gray">Space change · Enter continue · Esc back</Text>
+      </Box>
+    </CenteredScreen>
   );
 }
 
@@ -204,19 +206,21 @@ function settingValue(preferences: Preferences, key: SettingKey): string {
 
 function SettingsScreen({ preferences, focus, status }: { preferences: Preferences; focus: number; status: StatusMsg | null }) {
   return (
-    <Box flexDirection="column" alignItems="center">
-      <Text color="cyan" bold>SETTINGS</Text>
-      <Text color="gray">customize the timer · changes are saved together</Text>
-      {status && <Text color="red">{status.text}</Text>}
-      <Text>{' '}</Text>
-      {SETTING_KEYS.map((key, index) => (
-        <Text key={key} color={focus === index ? 'yellow' : undefined}>
-          {focus === index ? '› ' : '  '}{settingLabel(key)}: <Text bold={focus === index}>{settingValue(preferences, key)}</Text>
-        </Text>
-      ))}
-      <Text>{' '}</Text>
-      <Text color="gray">↑↓ move · Space change · Enter save · Esc cancel</Text>
-    </Box>
+    <CenteredScreen>
+      <Box flexDirection="column" alignItems="center">
+        <Text color="cyan" bold>SETTINGS</Text>
+        <Text color="gray">customize the timer · changes are saved together</Text>
+        {status && <Text color="red">{status.text}</Text>}
+        <Text>{' '}</Text>
+        {SETTING_KEYS.map((key, index) => (
+          <Text key={key} color={focus === index ? 'yellow' : undefined}>
+            {focus === index ? '› ' : '  '}{settingLabel(key)}: <Text bold={focus === index}>{settingValue(preferences, key)}</Text>
+          </Text>
+        ))}
+        <Text>{' '}</Text>
+        <Text color="gray">↑↓ move · Space change · Enter save · Esc cancel</Text>
+      </Box>
+    </CenteredScreen>
   );
 }
 
@@ -225,18 +229,23 @@ function dateHeading(date: Date): string {
 }
 
 function ActivitySessions({ summary, preferences, active }: { summary: ActivitySummary; preferences: Preferences; active: Active | null }) {
+  const projectWidth = Math.max(12, ...summary.sessions.map((session) => session.project.length), active?.project.length ?? 0);
+  const durationWidth = Math.max(8, ...summary.sessions.map((session) => formatDuration(session.duration_secs).length), active ? formatDuration(elapsedSeconds(active)).length : 0);
+  const row = (project: string, start: string, end: string, duration: string) => (
+    <Text>{'  '}{project.padEnd(projectWidth, ' ')}  {`${start} → ${end}`.padEnd(21, ' ')}{duration.padStart(durationWidth, ' ')}</Text>
+  );
   return (
-    <>
+    <Box flexDirection="column" alignItems="flex-start">
       <Text color="gray">{formatDuration(summary.totalSecs)} tracked · {summary.sessionCount} sessions</Text>
       <Text>{' '}</Text>
       {summary.sessions.map((session, index) => (
-        <Text key={`${session.started_at.toISOString()}-${index}`}>
-          {'  '}{session.project.padEnd(16, ' ')}{formatTime(session.started_at, preferences.clockFormat)} → {formatTime(session.ended_at, preferences.clockFormat)}   {formatDuration(session.duration_secs)}
-        </Text>
+        <React.Fragment key={`${session.started_at.toISOString()}-${index}`}>
+          {row(session.project, formatTime(session.started_at, preferences.clockFormat), formatTime(session.ended_at, preferences.clockFormat), formatDuration(session.duration_secs))}
+        </React.Fragment>
       ))}
-      {active && <Text color="magenta" bold>{'  '}{active.project.padEnd(16, ' ')}{formatTime(active.started_at, preferences.clockFormat)} → ACTIVE   {formatDuration(elapsedSeconds(active))}</Text>}
+      {active && <Text color="magenta" bold>{row(active.project, formatTime(active.started_at, preferences.clockFormat), 'ACTIVE', formatDuration(elapsedSeconds(active)))}</Text>}
       {summary.sessions.length === 0 && !active && <Text color="gray">no sessions logged on this day</Text>}
-    </>
+    </Box>
   );
 }
 
@@ -263,33 +272,43 @@ function ActivityAnalytics({ summary }: { summary: ActivitySummary }) {
   );
 }
 
+function CenteredScreen({ children }: { children: React.ReactNode }) {
+  const { rows } = useWindowSize();
+  return <Box height={rows} width="100%" justifyContent="center" alignItems="center">{children}</Box>;
+}
+
 function ActivityScreen({ store, preferences, date, tab }: { store: Store; preferences: Preferences; date: Date; tab: ActivityTab }) {
   const summary = activityForDay(store.history, date);
   return (
-    <Box flexDirection="column" alignItems="center">
-      <Text color="cyan" bold>ACTIVITY · {tab === 'sessions' ? 'SESSIONS' : 'ANALYTICS'}</Text>
-      <Text color="magenta" bold>{dateHeading(date)}</Text>
-      <Text>{' '}</Text>
-      {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active && isSameDay(store.active.started_at, date) ? store.active : null} /> : <ActivityAnalytics summary={summary} />}
-      <Text>{' '}</Text>
-      <Text color="gray">Tab {tab === 'sessions' ? 'analytics' : 'sessions'} · ←→ day · Esc back</Text>
-    </Box>
+    <CenteredScreen>
+      <Box flexDirection="column" alignItems="center">
+        <Text color="cyan" bold>ACTIVITY · {tab === 'sessions' ? 'SESSIONS' : 'ANALYTICS'}</Text>
+        <Text color="magenta" bold>{dateHeading(date)}</Text>
+        <Text>{' '}</Text>
+        {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active && isSameDay(store.active.started_at, date) ? store.active : null} /> : <ActivityAnalytics summary={summary} />}
+        <Text>{' '}</Text>
+        <Text color="gray">Tab {tab === 'sessions' ? 'analytics' : 'sessions'} · ←→ day · Esc back</Text>
+      </Box>
+    </CenteredScreen>
   );
 }
 
 function HelpScreen() {
   return (
-    <Box flexDirection="column" alignItems="center">
-      <Text color="cyan" bold>HELP</Text>
-      <Text>{' '}</Text>
-      <Text><Text color="yellow">i</Text> start a session</Text>
-      <Text><Text color="yellow">o</Text> stop the active session</Text>
-      <Text><Text color="yellow">a</Text> open Activity</Text>
-      <Text><Text color="yellow">?</Text> open this help</Text>
-      <Text><Text color="yellow">q</Text> quit</Text>
-      <Text>{' '}</Text>
-      <Text color="gray">Settings: punch settings · Esc close</Text>
-    </Box>
+    <CenteredScreen>
+      <Box flexDirection="column" alignItems="center">
+        <Text color="cyan" bold>HELP</Text>
+        <Text>{' '}</Text>
+        <Text><Text color="yellow">i</Text> start a session</Text>
+        <Text><Text color="yellow">o</Text> stop the active session</Text>
+        <Text><Text color="yellow">a</Text> open Activity</Text>
+        <Text><Text color="yellow">s</Text> open Settings</Text>
+        <Text><Text color="yellow">?</Text> open this help</Text>
+        <Text><Text color="yellow">q</Text> quit</Text>
+        <Text>{' '}</Text>
+        <Text color="gray">Esc close</Text>
+      </Box>
+    </CenteredScreen>
   );
 }
 
@@ -455,6 +474,7 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     else if (keyInput === 'o' && store.active) setMode('stop-confirm');
     else if (keyInput === '?') setScreen('help');
     else if (keyInput === 'a') { setActivityDate(new Date()); setActivityTab('sessions'); setScreen('activity'); }
+    else if (keyInput === 's') { setDraftPreferences(preferences); setScreen('settings'); }
   });
 
   if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} status={status} />;

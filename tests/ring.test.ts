@@ -31,4 +31,10 @@ describe('progress rings', () => {
     expect(perimeter.some((cell) => cell.cat === -1)).toBe(true);
     expect(ringGrid('smooth', { frac: 1, center: '100%', label: '' }).flat().some((cell) => cell.cat === -1)).toBe(false);
   });
+
+  test('smooth ring has a curved outline instead of a rectangle', () => {
+    const rows = ringGrid('smooth', { frac: 0.5, center: '50%', label: '' });
+    const activeCells = (row: typeof rows[number]) => row.filter((cell) => cell.cat === 0 || cell.cat === -1).length;
+    expect(activeCells(rows[0])).toBeLessThan(activeCells(rows[Math.floor(rows.length / 2)]));
+  });
 });

@@ -45,6 +45,17 @@ describe('timer interactions', () => {
     expect(frame).not.toContain('g goal');
   });
 
+  test('s opens settings from the main timer', async () => {
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('s');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('SETTINGS');
+  });
+
   test('starting a project shows the active state and stop action', async () => {
     const instance = render(React.createElement(App));
     await flush();
@@ -165,9 +176,11 @@ describe('help and activity', () => {
     await flush();
     instance.stdin.write('?');
     await flush();
-    expect(instance.lastFrame()).toContain('HELP');
-    expect(instance.lastFrame()).toContain('a open Activity');
-    expect(instance.lastFrame()).toContain('Esc close');
+    const helpFrame = instance.lastFrame() ?? '';
+    expect(helpFrame).toContain('HELP');
+    expect(helpFrame).toContain('a open Activity');
+    expect(helpFrame).toContain('Esc close');
+    expect(helpFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
     instance.stdin.write('\x1b');
     await flush();
     const frame = instance.lastFrame() ?? '';
@@ -194,9 +207,11 @@ describe('help and activity', () => {
     await flush();
     instance.stdin.write('a');
     await flush();
-    expect(instance.lastFrame()).toContain('ACTIVITY');
-    expect(instance.lastFrame()).toContain('SESSIONS');
-    expect(instance.lastFrame()).toContain('Research');
+    const activityFrame = instance.lastFrame() ?? '';
+    expect(activityFrame).toContain('ACTIVITY');
+    expect(activityFrame).toContain('SESSIONS');
+    expect(activityFrame).toContain('Research');
+    expect(activityFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
     instance.stdin.write('\t');
     await flush();
     const frame = instance.lastFrame() ?? '';

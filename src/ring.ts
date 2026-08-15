@@ -43,24 +43,24 @@ export function ringGrid(style: RingStyle, data: RingData): Cell[][] {
   const rows = 6;
   const cols = style === 'pixel' ? 21 : 23;
   const grid: Cell[][] = [];
-  const fill = Math.round(data.frac * (cols * 2 + rows * 2 - 4));
   for (let row = 0; row < rows; row++) {
     const cells: Cell[] = [];
     for (let col = 0; col < cols; col++) {
-      const edge = row === 0 || row === rows - 1 || col === 0 || col === cols - 1;
-      if (!edge) {
+      const x = (col - (cols - 1) / 2) / ((cols - 1) / 2);
+      const y = (row - (rows - 1) / 2) / ((rows - 1) / 2);
+      const distance = Math.hypot(x, y);
+      const inner = style === 'thin' ? 0.78 : 0.58;
+      if (distance < inner || distance > 1.08) {
         cells.push({ ch: ' ', cat: -2 });
         continue;
       }
-      const perimeterIndex = row === 0
-        ? col
-        : col === cols - 1
-          ? cols + row - 1
-          : row === rows - 1
-            ? cols + rows - 1 + (cols - 2 - col)
-            : cols + rows - 1 + (cols - 1) + (rows - 2 - row);
-      const filled = perimeterIndex < fill;
-      cells.push({ ch: filled ? (style === 'pixel' ? '█' : '⠿') : '·', cat: filled ? 0 : -1 });
+      const angle = (Math.atan2(x, -y) + Math.PI * 2) % (Math.PI * 2);
+      const progress = angle / (Math.PI * 2);
+      const filled = progress <= data.frac;
+      cells.push({
+        ch: filled ? (style === 'pixel' ? '█' : '⠿') : style === 'pixel' ? '·' : '⠒',
+        cat: filled ? 0 : -1,
+      });
     }
     grid.push(cells);
   }
