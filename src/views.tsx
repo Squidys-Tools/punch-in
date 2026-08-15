@@ -436,6 +436,13 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
   };
 
   const saveQuickPreference = (next: Preferences) => {
+    if (preferenceLoadError) {
+      setStatus({
+        text: `Unable to save preferences: repair the preferences file and restart (${preferenceLoadError})`,
+        isError: true,
+      });
+      return;
+    }
     const result = savePreferences(next);
     if (!result.ok) {
       setStatus({ text: result.error, isError: true });

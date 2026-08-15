@@ -326,6 +326,23 @@ describe('preference save errors', () => {
     expect(frame).toContain('Unable to save preferences');
     expect(readFileSync(preferencesFile, 'utf8')).toBe(corrupt);
   });
+
+  test('quick preference keys also preserve an unreadable preferences file', async () => {
+    const corrupt = '{not valid preferences';
+    writeFileSync(preferencesFile, corrupt, 'utf8');
+
+    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
+    await flush();
+    instance.stdin.write('\x1b');
+    await flush();
+    instance.stdin.write('t');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    instance.unmount();
+
+    expect(frame).toContain('Unable to save preferences');
+    expect(readFileSync(preferencesFile, 'utf8')).toBe(corrupt);
+  });
 });
 
 describe('optional project reuse', () => {
