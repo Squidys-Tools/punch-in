@@ -64,3 +64,19 @@ export function status(): CmdResult {
   }
   return ok('no session is running');
 }
+
+export function goal(hours: number | null): CmdResult {
+  const store = load();
+  if (!store.ok) return fail(store.error);
+  const data = store.value;
+  if (hours === null) {
+    return ok(`daily goal: ${formatDuration(data.goal_secs)}`);
+  }
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 24) {
+    return fail(`invalid goal '${hours}': use a number of hours between 0 and 24`);
+  }
+  data.goal_secs = Math.round(hours * 3600);
+  const saveErr = save(data);
+  if (!saveErr.ok) return fail(saveErr.error);
+  return ok(`daily goal set to ${formatDuration(data.goal_secs)}`);
+}
