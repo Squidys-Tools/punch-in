@@ -117,6 +117,7 @@ bun run dev       # Run with watch mode
 bun run test      # Run the test suite
 bun run typecheck # Check TypeScript without emitting files
 bun run preview   # Render timer and ring design samples
+bun run build:release # Build standalone release artifacts
 bun run verify:package # Pack and test a clean npm installation
 ```
 
