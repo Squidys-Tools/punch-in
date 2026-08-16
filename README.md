@@ -18,7 +18,13 @@ Run the app directly from the checkout:
 bun run start
 ```
 
-With no command, `punch` opens the TUI in an interactive terminal. On the first launch, it asks for a clock format, visual style, and project-name behavior.
+To make the `punch` command available globally from this checkout, link the package after installing:
+
+```sh
+bun link
+```
+
+You can then use the `punch` commands below from any directory. Alternatively, prefix commands with `bun run start --` when running directly from the checkout. With no command, `punch` opens the TUI in an interactive terminal. On the first launch, it asks for a clock format, visual style, and project-name behavior.
 
 ## Command-line use
 
@@ -75,9 +81,9 @@ The app does not assign a productivity score or collect notes.
 By default, `punch` stores session history in:
 
 ```text
-%APPDATA%/punch/punch.json       Windows
-$XDG_CONFIG_HOME/punch/punch.json  When XDG_CONFIG_HOME is set
-~/.config/punch/punch.json       Other systems
+%APPDATA%/punch/punch.json                 When APPDATA is set (including on Windows)
+$XDG_CONFIG_HOME/punch/punch.json          When APPDATA is unset and XDG_CONFIG_HOME is set
+~/.config/punch/punch.json                 When neither variable is set
 ```
 
 Set `PUNCH_DATA` to use another history file. Preferences are stored beside it in `preferences.json`, or at the path in `PUNCH_PREFERENCES` if that variable is set.
