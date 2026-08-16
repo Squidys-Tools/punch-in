@@ -6,7 +6,27 @@ It is built with Bun, TypeScript, React, and Ink. Session history is stored in a
 
 ## Install
 
-You need [Bun](https://bun.sh/) installed.
+For the published package, install Punch globally with npm:
+
+```sh
+npm install --global punch
+```
+
+Check the installed version with:
+
+```sh
+punch --version
+```
+
+To remove the npm installation:
+
+```sh
+npm uninstall --global punch
+```
+
+npm removes the program but does not remove session history or preferences. Those files stay in the data paths described below.
+
+For development or a source checkout, you need [Bun](https://bun.sh/) installed.
 
 ```sh
 bun install
@@ -97,6 +117,7 @@ bun run dev       # Run with watch mode
 bun run test      # Run the test suite
 bun run typecheck # Check TypeScript without emitting files
 bun run preview   # Render timer and ring design samples
+bun run verify:package # Pack and test a clean npm installation
 ```
 
 The source lives in `src/`, tests live in `tests/`, and the preview script writes its plain-text output to `target/preview-ideas.txt`.
