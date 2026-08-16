@@ -1,10 +1,11 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import React from 'react';
 import { render } from 'ink';
+import packageMetadata from '../package.json';
 import { goal, start, status, stop } from './commands.js';
 import { App } from './views.js';
 
-const VERSION = '0.1.0';
+const VERSION = packageMetadata.version;
 
 const USAGE = `punch - a simple CLI time tracker
 

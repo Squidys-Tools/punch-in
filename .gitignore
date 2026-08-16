@@ -1,5 +1,6 @@
 # Node / Bun
 node_modules/
+dist/
 
 # Rust build artifacts (legacy)
 /target
