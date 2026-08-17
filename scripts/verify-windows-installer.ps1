@@ -18,9 +18,14 @@ if (-not $nodeCommand) {
 }
 $nodePath = $nodeCommand.Source
 $mirrorDir = Join-Path ([IO.Path]::GetTempPath()) "punch-installer-mirror-$([Guid]::NewGuid().ToString('N'))"
+$dataRoot = Join-Path ([IO.Path]::GetTempPath()) "punch-installer-data-$([Guid]::NewGuid().ToString('N'))"
 $ownsInstallDir = [string]::IsNullOrWhiteSpace($InstallDir)
+$ownedInstallRoot = $null
+$expectedInstallRoot = $null
 if ($ownsInstallDir) {
-  $InstallDir = Join-Path ([IO.Path]::GetTempPath()) "punch-installer-target-$([Guid]::NewGuid().ToString('N'))"
+  $ownedInstallRoot = Join-Path ([IO.Path]::GetTempPath()) "punch-installer-target-$([Guid]::NewGuid().ToString('N'))"
+  $InstallDir = Join-Path $ownedInstallRoot 'punch\bin'
+  $expectedInstallRoot = Split-Path -Parent $InstallDir
 }
 $badInstallDir = Join-Path ([IO.Path]::GetTempPath()) "punch-installer-bad-$([Guid]::NewGuid().ToString('N'))"
 $serverProcess = $null
@@ -73,7 +78,6 @@ try {
     throw 'Install manifest contents are incorrect.'
   }
 
-  $env:PUNCH_DATA = Join-Path $installDir 'data\punch.json'
   $versionOutput = (& $executablePath --version | Out-String).Trim()
   if ($versionOutput -ne "punch $version") {
     throw "Installed executable returned '$versionOutput'."
@@ -120,8 +124,8 @@ try {
     throw 'Checksum failure left an executable behind.'
   }
 
-  $dataPath = Join-Path $installDir 'data\punch.json'
-  $preferencesPath = Join-Path $installDir 'data\preferences.json'
+  $dataPath = Join-Path $dataRoot 'punch.json'
+  $preferencesPath = Join-Path $dataRoot 'preferences.json'
   New-Item -ItemType Directory -Path (Split-Path -Parent $dataPath) -Force | Out-Null
   Set-Content -LiteralPath $dataPath -Value '{}'
   Set-Content -LiteralPath $preferencesPath -Value '{}'
@@ -142,18 +146,24 @@ try {
   if (Test-Path -LiteralPath $manifestPath) {
     throw "Uninstall left punch-install.json behind: $uninstallOutput"
   }
+  if (Test-Path -LiteralPath $installDir) {
+    throw "Uninstall left the install directory behind: $uninstallOutput"
+  }
+  if ($expectedInstallRoot -and (Test-Path -LiteralPath $expectedInstallRoot)) {
+    throw "Uninstall left the empty local Punch directory behind: $uninstallOutput"
+  }
   if (-not (Test-Path -LiteralPath $dataPath) -or -not (Test-Path -LiteralPath $preferencesPath)) {
     throw 'Uninstall removed session data or preferences.'
   }
 
-  Write-Output 'PASS: fresh install, executable launch, upgrade replacement, checksum rejection, and uninstall preservation.'
+  Write-Output 'PASS: fresh install, executable launch, upgrade replacement, checksum rejection, uninstall preservation, and local directory cleanup.'
 } finally {
   if ($serverProcess) {
     Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
   }
-  $cleanupPaths = @($mirrorDir, $badInstallDir)
+  $cleanupPaths = @($mirrorDir, $badInstallDir, $dataRoot)
   if ($ownsInstallDir) {
-    $cleanupPaths += $installDir
+    $cleanupPaths += $ownedInstallRoot
   }
   Remove-Item -LiteralPath $cleanupPaths -Recurse -Force -ErrorAction SilentlyContinue
   if ($null -eq $oldData) { Remove-Item Env:PUNCH_DATA -ErrorAction SilentlyContinue } else { $env:PUNCH_DATA = $oldData }

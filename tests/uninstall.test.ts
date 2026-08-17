@@ -13,7 +13,7 @@ let preferencesPath: string;
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(os.tmpdir(), 'punch-uninstall-'));
-  installDir = path.join(dir, 'bin');
+  installDir = path.join(dir, 'punch', 'bin');
   mkdirSync(installDir, { recursive: true });
   executable = path.join(installDir, process.platform === 'win32' ? 'punch.exe' : 'punch');
   manifestFile = path.join(installDir, 'punch-install.json');
@@ -56,6 +56,8 @@ describe('uninstall', () => {
     expect(result.ok).toBe(true);
     expect(existsSync(executable)).toBe(false);
     expect(existsSync(manifestFile)).toBe(false);
+    expect(existsSync(installDir)).toBe(false);
+    if (process.platform === 'win32') expect(existsSync(path.dirname(installDir))).toBe(false);
     expect(existsSync(dataPath)).toBe(true);
     expect(existsSync(preferencesPath)).toBe(true);
   });
@@ -76,6 +78,8 @@ describe('uninstall', () => {
     expect(result.ok).toBe(true);
     expect(existsSync(executable)).toBe(false);
     expect(existsSync(manifestFile)).toBe(false);
+    expect(existsSync(installDir)).toBe(false);
+    if (process.platform === 'win32') expect(existsSync(path.dirname(installDir))).toBe(false);
     expect(existsSync(dataPath)).toBe(false);
     expect(existsSync(preferencesPath)).toBe(false);
   });
