@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import fs from 'node:fs';
 import React from 'react';
 import { render } from 'ink';
 import packageMetadata from '../package.json';
 import { goal, start, status, stop } from './commands.js';
+import { dataFilesForRemoval, uninstall } from './uninstall.js';
 import { App } from './views.js';
 
 const VERSION = packageMetadata.version;
@@ -17,6 +19,7 @@ Commands:
   status         Show the active session and elapsed time
   goal [HOURS]   Show or set the daily goal (e.g. "punch goal 6" for 6 hours)
   settings       Open the interactive settings screen
+  uninstall      Remove Punch while preserving data
   help           Print this help
 
 Options:
@@ -81,6 +84,41 @@ function main(): void {
         { alternateScreen: true },
       );
       waitUntilExit();
+      return;
+    }
+    case 'uninstall': {
+      const extraArgs = args.slice(1);
+      const removeData = extraArgs.includes('--remove-data');
+      const unknownArg = extraArgs.find((arg) => arg !== '--remove-data');
+      if (unknownArg) {
+        printResult({ ok: false, message: `unrecognized uninstall option '${unknownArg}'` });
+        return;
+      }
+
+      if (!removeData) {
+        printResult(uninstall());
+        return;
+      }
+
+      if (!process.stdin.isTTY || !process.stdout.isTTY) {
+        printResult({
+          ok: false,
+          message: 'uninstall --remove-data requires an interactive terminal confirmation',
+        });
+        return;
+      }
+
+      const dataFiles = dataFilesForRemoval();
+      if (!dataFiles.ok) {
+        printResult({ ok: false, message: dataFiles.error });
+        return;
+      }
+
+      console.log('The following Punch data files will be deleted:');
+      for (const file of dataFiles.files) console.log(`  ${file}`);
+      process.stdout.write('Type "yes" to continue: ');
+      const answer = fs.readFileSync(0, 'utf8').trim().toLowerCase();
+      printResult(uninstall({ removeData: true, confirmed: answer === 'yes' }));
       return;
     }
     case 'help':

@@ -26,6 +26,30 @@ npm uninstall --global punch
 
 npm removes the program but does not remove session history or preferences. Those files stay in the data paths described below.
 
+For a standalone Windows install, run the PowerShell installer from the latest GitHub release:
+
+```powershell
+irm https://raw.githubusercontent.com/exodus712/punch-in/main/install.ps1 | iex
+```
+
+The installer verifies the release checksum, installs `punch.exe` under `%LOCALAPPDATA%\punch\bin`, and leaves session data untouched during upgrades.
+
+For a standalone macOS or Linux install, run:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/exodus712/punch-in/main/install.sh | sh
+```
+
+The script detects the operating system and architecture, verifies the release checksum, and installs `punch` under `~/.local/bin`. If that directory is not already on `PATH`, it prints the export command to add to your shell profile.
+
+To remove a standalone install, run:
+
+```powershell
+punch uninstall
+```
+
+This removes Punch but preserves session history and preferences. To remove those files too, use `punch uninstall --remove-data`; it requires an explicit confirmation and lists the exact files first.
+
 For development or a source checkout, you need [Bun](https://bun.sh/) installed.
 
 ```sh
@@ -119,6 +143,12 @@ bun run typecheck # Check TypeScript without emitting files
 bun run preview   # Render timer and ring design samples
 bun run build:release # Build standalone release artifacts
 bun run verify:package # Pack and test a clean npm installation
+```
+
+On Windows, run the installer smoke test after building release artifacts:
+
+```powershell
+pwsh -NoProfile -File .\scripts\verify-windows-installer.ps1
 ```
 
 The source lives in `src/`, tests live in `tests/`, and the preview script writes its plain-text output to `target/preview-ideas.txt`.
