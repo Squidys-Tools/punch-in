@@ -151,6 +151,15 @@ On Windows, run the installer smoke test after building release artifacts:
 pwsh -NoProfile -File .\scripts\verify-windows-installer.ps1
 ```
 
+Releases are built and published by GitHub Actions when a `v*` tag is pushed. The tag must match the version in `package.json`:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow runs the tests and typecheck, builds the Windows, macOS, and Linux artifacts, verifies their checksums and release manifest, then uploads them to the GitHub release. The one-line installers use those uploaded assets.
+
 The source lives in `src/`, tests live in `tests/`, and the preview script writes its plain-text output to `target/preview-ideas.txt`.
 
 ## License
