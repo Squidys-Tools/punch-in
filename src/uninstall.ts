@@ -199,12 +199,13 @@ function removeInstalledProgram(
   deferredFiles: readonly string[],
 ): UninstallResult {
   const files = [location.manifest.executable, location.file];
+  const directories = installDirectoriesForRemoval(location.manifest.installDirectory);
   const runningExecutable = samePath(location.manifest.executable, process.execPath);
 
   if (runningExecutable && process.platform === 'win32') {
     const scheduled = scheduleWindowsRemoval(
       uniquePaths([...files, ...deferredFiles]),
-      location.manifest.installDirectory,
+      directories,
     );
     if (!scheduled.ok) return scheduled;
     return ok('');
@@ -215,17 +216,20 @@ function removeInstalledProgram(
       const removedData = removeFiles(deferredFiles, 'data');
       if (!removedData.ok) return removedData;
     }
+    const removedDirectories = removeEmptyDirectories(directories);
+    if (!removedDirectories.ok) return removedDirectories;
   }
 
   removeUserPathEntry(location.manifest.installDirectory);
   return ok('');
 }
 
-function scheduleWindowsRemoval(files: readonly string[], installDirectory: string): UninstallResult {
+function scheduleWindowsRemoval(files: readonly string[], directories: readonly string[]): UninstallResult {
   const helperFile = path.join(os.tmpdir(), `punch-uninstall-${process.pid}-${Date.now()}.ps1`);
   const escapedFiles = files.map(powershellLiteral);
+  const escapedDirectories = directories.map(powershellLiteral);
   const helperPath = powershellLiteral(helperFile);
-  const directoryPath = powershellLiteral(installDirectory);
+  const pathDirectory = powershellLiteral(directories[0]);
   const script = [
     '$ErrorActionPreference = "SilentlyContinue"',
     `$parentId = ${process.pid}`,
@@ -243,12 +247,18 @@ function scheduleWindowsRemoval(files: readonly string[], installDirectory: stri
     '    if (Test-Path -LiteralPath $file) { Start-Sleep -Milliseconds 200 }',
     '  }',
     '}',
-    `$directory = [IO.Path]::GetFullPath(${directoryPath})`,
+    '$directories = @(',
+    ...escapedDirectories.map((directory) => `  ${directory}`),
+    ')',
+    'foreach ($directory in $directories) {',
+    '  Remove-Item -LiteralPath $directory -Force -ErrorAction SilentlyContinue',
+    '}',
+    `$pathDirectory = [IO.Path]::GetFullPath(${pathDirectory})`,
     '$current = [Environment]::GetEnvironmentVariable("Path", "User")',
     'if ($null -ne $current) {',
     '  $entries = foreach ($entry in ($current -split ";")) {',
     '    if (-not $entry) { continue }',
-    '    try { if ([IO.Path]::GetFullPath($entry) -ine $directory) { $entry } } catch { $entry }',
+    '    try { if ([IO.Path]::GetFullPath($entry) -ine $pathDirectory) { $entry } } catch { $entry }',
     '  }',
     '  [Environment]::SetEnvironmentVariable("Path", ($entries -join ";"), "User")',
     '}',
@@ -282,6 +292,32 @@ function scheduleWindowsRemoval(files: readonly string[], installDirectory: stri
   } catch (error) {
     fs.rmSync(helperFile, { force: true });
     return uninstallFail(`failed to schedule installed program removal: ${errorMessage(error)}`);
+  }
+  return ok('');
+}
+
+function installDirectoriesForRemoval(installDirectory: string): string[] {
+  const directories = [installDirectory];
+  const parent = path.dirname(installDirectory);
+  if (
+    process.platform === 'win32' &&
+    path.basename(installDirectory).toLowerCase() === 'bin' &&
+    path.basename(parent).toLowerCase() === 'punch'
+  ) {
+    directories.push(parent);
+  }
+  return directories;
+}
+
+function removeEmptyDirectories(directories: readonly string[]): UninstallResult {
+  try {
+    for (const directory of directories) {
+      if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) {
+        fs.rmdirSync(directory);
+      }
+    }
+  } catch (error) {
+    return uninstallFail(`failed to remove empty install directories: ${errorMessage(error)}`);
   }
   return ok('');
 }
