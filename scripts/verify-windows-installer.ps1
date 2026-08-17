@@ -24,6 +24,8 @@ if ($ownsInstallDir) {
 }
 $badInstallDir = Join-Path ([IO.Path]::GetTempPath()) "punch-installer-bad-$([Guid]::NewGuid().ToString('N'))"
 $serverProcess = $null
+$oldData = $env:PUNCH_DATA
+$oldPreferences = $env:PUNCH_PREFERENCES
 
 function Invoke-Installer([string]$TargetDirectory) {
   $arguments = @(
@@ -118,7 +120,33 @@ try {
     throw 'Checksum failure left an executable behind.'
   }
 
-  Write-Output 'PASS: fresh install, executable launch, upgrade replacement, and checksum rejection.'
+  $dataPath = Join-Path $installDir 'data\punch.json'
+  $preferencesPath = Join-Path $installDir 'data\preferences.json'
+  New-Item -ItemType Directory -Path (Split-Path -Parent $dataPath) -Force | Out-Null
+  Set-Content -LiteralPath $dataPath -Value '{}'
+  Set-Content -LiteralPath $preferencesPath -Value '{}'
+  $env:PUNCH_DATA = $dataPath
+  $env:PUNCH_PREFERENCES = $preferencesPath
+
+  $uninstallStarted = Get-Date
+  $uninstallOutput = (& $executablePath uninstall 2>&1 | Out-String).Trim()
+  $uninstallDuration = (Get-Date) - $uninstallStarted
+  Write-Output "Uninstall command duration: $([math]::Round($uninstallDuration.TotalSeconds, 2)) seconds."
+  if ($LASTEXITCODE -ne 0) {
+    throw "Uninstaller exited with code ${LASTEXITCODE}: $uninstallOutput"
+  }
+  Start-Sleep -Seconds 3
+  if (Test-Path -LiteralPath $executablePath) {
+    throw "Uninstall left punch.exe behind: $uninstallOutput"
+  }
+  if (Test-Path -LiteralPath $manifestPath) {
+    throw "Uninstall left punch-install.json behind: $uninstallOutput"
+  }
+  if (-not (Test-Path -LiteralPath $dataPath) -or -not (Test-Path -LiteralPath $preferencesPath)) {
+    throw 'Uninstall removed session data or preferences.'
+  }
+
+  Write-Output 'PASS: fresh install, executable launch, upgrade replacement, checksum rejection, and uninstall preservation.'
 } finally {
   if ($serverProcess) {
     Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
@@ -128,4 +156,6 @@ try {
     $cleanupPaths += $installDir
   }
   Remove-Item -LiteralPath $cleanupPaths -Recurse -Force -ErrorAction SilentlyContinue
+  if ($null -eq $oldData) { Remove-Item Env:PUNCH_DATA -ErrorAction SilentlyContinue } else { $env:PUNCH_DATA = $oldData }
+  if ($null -eq $oldPreferences) { Remove-Item Env:PUNCH_PREFERENCES -ErrorAction SilentlyContinue } else { $env:PUNCH_PREFERENCES = $oldPreferences }
 }

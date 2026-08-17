@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -59,12 +59,11 @@ export function uninstall(options: UninstallOptions = {}): UninstallResult {
   const location = locateInstallManifest(options.manifestFile);
   if (!location.ok) return uninstallFail(location.error);
 
-  if (removeData) {
-    const removedData = removeFiles(dataFiles.files, 'data');
-    if (!removedData.ok) return removedData;
-  }
-
   if (!location.value) {
+    if (removeData) {
+      const removedData = removeFiles(dataFiles.files, 'data');
+      if (!removedData.ok) return removedData;
+    }
     const dataMessage = removeData
       ? ` Removed data files: ${dataFiles.files.join(', ')}.`
       : ' Session data and preferences were preserved.';
@@ -74,7 +73,7 @@ export function uninstall(options: UninstallOptions = {}): UninstallResult {
     return ok(`Punch is running from a source checkout. Remove the checkout manually.${dataMessage}`);
   }
 
-  const removedProgram = removeInstalledProgram(location.value);
+  const removedProgram = removeInstalledProgram(location.value, removeData ? dataFiles.files : []);
   if (!removedProgram.ok) return removedProgram;
 
   const dataMessage = removeData
@@ -195,46 +194,104 @@ function removeFiles(files: readonly string[], kind: string): UninstallResult {
   return ok('');
 }
 
-function removeInstalledProgram(location: InstallManifestLocation): UninstallResult {
+function removeInstalledProgram(
+  location: InstallManifestLocation,
+  deferredFiles: readonly string[],
+): UninstallResult {
   const files = [location.manifest.executable, location.file];
   const runningExecutable = samePath(location.manifest.executable, process.execPath);
 
   if (runningExecutable && process.platform === 'win32') {
-    const scheduled = scheduleWindowsRemoval(files);
+    const scheduled = scheduleWindowsRemoval(
+      uniquePaths([...files, ...deferredFiles]),
+      location.manifest.installDirectory,
+    );
     if (!scheduled.ok) return scheduled;
+    return ok('');
   } else {
     const removed = removeFiles(files, 'installed program');
     if (!removed.ok) return removed;
+    if (deferredFiles.length > 0) {
+      const removedData = removeFiles(deferredFiles, 'data');
+      if (!removedData.ok) return removedData;
+    }
   }
 
   removeUserPathEntry(location.manifest.installDirectory);
   return ok('');
 }
 
-function scheduleWindowsRemoval(files: readonly string[]): UninstallResult {
-  const helperFile = path.join(os.tmpdir(), `punch-uninstall-${process.pid}-${Date.now()}.cmd`);
+function scheduleWindowsRemoval(files: readonly string[], installDirectory: string): UninstallResult {
+  const helperFile = path.join(os.tmpdir(), `punch-uninstall-${process.pid}-${Date.now()}.ps1`);
+  const escapedFiles = files.map(powershellLiteral);
+  const helperPath = powershellLiteral(helperFile);
+  const directoryPath = powershellLiteral(installDirectory);
   const script = [
-    '@echo off',
-    ':wait_for_parent',
-    `tasklist /FI "PID eq ${process.pid}" | findstr /C:"${process.pid}" >nul`,
-    'if not errorlevel 1 (timeout /t 1 /nobreak >nul & goto wait_for_parent)',
-    `del /f /q "${files[0]}" >nul 2>&1`,
-    `del /f /q "${files[1]}" >nul 2>&1`,
-    'del /f /q "%~f0" >nul 2>&1',
+    '$ErrorActionPreference = "SilentlyContinue"',
+    `$parentId = ${process.pid}`,
+    'for ($attempt = 0; $attempt -lt 25; $attempt++) {',
+    '  if (-not (Get-Process -Id $parentId -ErrorAction SilentlyContinue)) { break }',
+    '  Start-Sleep -Milliseconds 200',
+    '}',
+    '$files = @(',
+    ...escapedFiles.map((file) => `  ${file}`),
+    ')',
+    'foreach ($file in $files) {',
+    '  for ($attempt = 0; $attempt -lt 25; $attempt++) {',
+    '    if (-not (Test-Path -LiteralPath $file)) { break }',
+    '    Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue',
+    '    if (Test-Path -LiteralPath $file) { Start-Sleep -Milliseconds 200 }',
+    '  }',
+    '}',
+    `$directory = [IO.Path]::GetFullPath(${directoryPath})`,
+    '$current = [Environment]::GetEnvironmentVariable("Path", "User")',
+    'if ($null -ne $current) {',
+    '  $entries = foreach ($entry in ($current -split ";")) {',
+    '    if (-not $entry) { continue }',
+    '    try { if ([IO.Path]::GetFullPath($entry) -ine $directory) { $entry } } catch { $entry }',
+    '  }',
+    '  [Environment]::SetEnvironmentVariable("Path", ($entries -join ";"), "User")',
+    '}',
+    `$cleanup = "Start-Sleep -Milliseconds 250; Remove-Item -LiteralPath ${helperPath} -Force -ErrorAction SilentlyContinue"`,
+    "Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-NonInteractive', '-Command', $cleanup) -WindowStyle Hidden",
   ].join('\r\n');
 
   try {
     fs.writeFileSync(helperFile, `${script}\r\n`);
-    const child = spawn('cmd.exe', ['/d', '/c', 'start', '""', '/b', 'cmd.exe', '/d', '/c', `"${helperFile}"`], {
-      detached: true,
+    const launcher = [
+      `$arguments = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', ${powershellLiteral(helperFile)})`,
+      "Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden",
+    ].join('; ');
+    const result = spawnSync('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      launcher,
+    ], {
       stdio: 'ignore',
       windowsHide: true,
     });
-    child.unref();
+    if (result.error) {
+      fs.rmSync(helperFile, { force: true });
+      return uninstallFail(`failed to start the installed program removal helper: ${errorMessage(result.error)}`);
+    }
+    if (result.status !== 0) {
+      fs.rmSync(helperFile, { force: true });
+      return uninstallFail(`failed to start the installed program removal helper (exit code ${result.status})`);
+    }
   } catch (error) {
+    fs.rmSync(helperFile, { force: true });
     return uninstallFail(`failed to schedule installed program removal: ${errorMessage(error)}`);
   }
   return ok('');
+}
+
+function powershellLiteral(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function uniquePaths(files: readonly string[]): string[] {
+  return files.filter((file, index) => files.findIndex((existing) => samePath(existing, file)) === index);
 }
 
 function removeUserPathEntry(directory: string): void {

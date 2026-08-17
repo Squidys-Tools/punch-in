@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import fs from 'node:fs';
+import { createInterface } from 'node:readline/promises';
 import React from 'react';
 import { render } from 'ink';
 import packageMetadata from '../package.json';
@@ -38,7 +38,7 @@ function printResult(result: { ok: boolean; message: string }): void {
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const command = args[0];
 
@@ -116,9 +116,13 @@ function main(): void {
 
       console.log('The following Punch data files will be deleted:');
       for (const file of dataFiles.files) console.log(`  ${file}`);
-      process.stdout.write('Type "yes" to continue: ');
-      const answer = fs.readFileSync(0, 'utf8').trim().toLowerCase();
-      printResult(uninstall({ removeData: true, confirmed: answer === 'yes' }));
+      const prompt = createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        const answer = (await prompt.question('Type "yes" to continue: ')).trim().toLowerCase();
+        printResult(uninstall({ removeData: true, confirmed: answer === 'yes' }));
+      } finally {
+        prompt.close();
+      }
       return;
     }
     case 'help':
@@ -140,4 +144,4 @@ function main(): void {
   }
 }
 
-main();
+await main();
