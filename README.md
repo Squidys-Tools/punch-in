@@ -29,7 +29,7 @@ npm removes the program but does not remove session history or preferences. Thos
 For a standalone Windows install, run the PowerShell installer from the latest GitHub release:
 
 ```powershell
-irm https://raw.githubusercontent.com/exodus712/punch-in/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/squidllee/punch-in/main/install.ps1 | iex
 ```
 
 The installer verifies the release checksum, installs `punch.exe` under `%LOCALAPPDATA%\punch\bin`, and leaves session data untouched during upgrades.
@@ -37,7 +37,7 @@ The installer verifies the release checksum, installs `punch.exe` under `%LOCALA
 For a standalone macOS or Linux install, run:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/exodus712/punch-in/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/squidllee/punch-in/main/install.sh | sh
 ```
 
 The script detects the operating system and architecture, verifies the release checksum, and installs `punch` under `~/.local/bin`. If that directory is not already on `PATH`, it prints the export command to add to your shell profile.

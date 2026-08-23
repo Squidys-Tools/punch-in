@@ -63,7 +63,7 @@ The downloaded artifact should have a published checksum. The installer should v
 Contributors and users who prefer source builds should keep using Bun:
 
 ```sh
-git clone https://github.com/exodus712/punch-in.git
+git clone https://github.com/squidllee/punch-in.git
 cd punch
 bun install
 bun run start

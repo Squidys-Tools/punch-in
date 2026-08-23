@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-REPOSITORY='https://github.com/exodus712/punch-in/releases'
+REPOSITORY='https://github.com/squidllee/punch-in/releases'
 INSTALLER_VERSION='1'
 VERSION="${PUNCH_VERSION:-latest}"
 BASE_URL="${PUNCH_BASE_URL:-}"
@@ -25,8 +25,8 @@ Options:
   -h, --help              Show this help.
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/exodus712/punch-in/main/install.sh | sh
-  curl -fsSL https://raw.githubusercontent.com/exodus712/punch-in/main/install.sh | sh -s -- --version 0.1.0
+  curl -fsSL https://raw.githubusercontent.com/squidllee/punch-in/main/install.sh | sh
+  curl -fsSL https://raw.githubusercontent.com/squidllee/punch-in/main/install.sh | sh -s -- --version 0.1.0
 EOF
 }
 
