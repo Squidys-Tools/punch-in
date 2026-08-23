@@ -22,7 +22,7 @@ function Get-DefaultInstallDirectory {
 }
 
 function Get-DefaultBaseUrl([string]$RequestedVersion) {
-  $repository = 'https://github.com/exodus712/punch-in/releases'
+  $repository = 'https://github.com/squidllee/punch-in/releases'
   if ($RequestedVersion -eq 'latest') {
     return "$repository/latest/download"
   }
