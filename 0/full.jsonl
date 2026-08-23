@@ -1,0 +1,1128 @@
+{
+  "info": {
+    "id": "ses_fd35bb9abffexN32hDV4AKYaQV",
+    "slug": "quiet-cabin",
+    "projectID": "736255ed8a3ab5f0f3f9b3b07766b9b325c1e8f0",
+    "directory": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+    "path": "",
+    "title": "i have a new github username: https://github.com/s...",
+    "agent": "build",
+    "model": {
+      "id": "x-preview-f-free",
+      "providerID": "opencode",
+      "variant": "low"
+    },
+    "version": "1.18.21",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 21141,
+      "output": 540,
+      "reasoning": 14,
+      "cache": {
+        "read": 201984,
+        "write": 0
+      }
+    },
+    "permission": [
+      {
+        "permission": "*",
+        "pattern": "*",
+        "action": "allow"
+      }
+    ],
+    "time": {
+      "created": 1787455358551,
+      "updated": 1787455575348
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1787455359700
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "x-preview-f-free",
+          "variant": "low"
+        },
+        "summary": {
+          "diffs": [
+            {
+              "file": "MIT License",
+              "patch": "Index: MIT License\n===================================================================\n--- MIT License\t\n+++ MIT License\t\n@@ -1,21 +1,21 @@\n-MIT License\n-\n-Copyright (c) 2026 exodus712\n-\n-Permission is hereby granted, free of charge, to any person obtaining a copy\n-of this software and associated documentation files (the \"Software\"), to deal\n-in the Software without restriction, including without limitation the rights\n-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n-copies of the Software, and to permit persons to whom the Software is\n-furnished to do so, subject to the following conditions:\n-\n-The above copyright notice and this permission notice shall be included in all\n-copies or substantial portions of the Software.\n-\n-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n-SOFTWARE.\n+MIT License\r\n+\r\n+Copyright (c) 2026 squidllee\r\n+\r\n+Permission is hereby granted, free of charge, to any person obtaining a copy\r\n+of this software and associated documentation files (the \"Software\"), to deal\r\n+in the Software without restriction, including without limitation the rights\r\n+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\r\n+copies of the Software, and to permit persons to whom the Software is\r\n+furnished to do so, subject to the following conditions:\r\n+\r\n+The above copyright notice and this permission notice shall be included in all\r\n+copies or substantial portions of the Software.\r\n+\r\n+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\r\n+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\r\n+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\r\n+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\r\n+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\r\n+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\r\n+SOFTWARE.\r\n",
+              "additions": 21,
+              "deletions": 21,
+              "status": "modified"
+            },
+            {
+              "file": "README.md",
+              "patch": "Index: README.md\n===================================================================\n--- README.md\t\n+++ README.md\t\n@@ -1,167 +1,167 @@\n-# punch\n-\n-`punch` is a small terminal time tracker for project work. Start a session, stop it when you are done, and review the day in the interactive TUI.\n-\n-It is built with Bun, TypeScript, React, and Ink. Session history is stored in a local JSON file, so there is no server or account to configure.\n-\n-## Install\n-\n-For the published package, install Punch globally with npm:\n-\n-```sh\n-npm install --global punch\n-```\n-\n-Check the installed version with:\n-\n-```sh\n-punch --version\n-```\n-\n-To remove the npm installation:\n-\n-```sh\n-npm uninstall --global punch\n-```\n-\n-npm removes the program but does not remove session history or preferences. Those files stay in the data paths described below.\n-\n-For a standalone Windows install, run the PowerShell installer from the latest GitHub release:\n-\n-```powershell\n-irm https://raw.githubusercontent.com/exodus712/punch-in/main/install.ps1 | iex\n-```\n-\n-The installer verifies the release checksum, installs `punch.exe` under `%LOCALAPPDATA%\\punch\\bin`, and leaves session data untouched during upgrades.\n-\n-For a standalone macOS or Linux install, run:\n-\n-```sh\n-curl -fsSL https://raw.githubusercontent.com/exodus712/punch-in/main/install.sh | sh\n-```\n-\n-The script detects the operating system and architecture, verifies the release checksum, and installs `punch` under `~/.local/bin`. If that directory is not already on `PATH`, it prints the export command to add to your shell profile.\n-\n-To remove a standalone install, run:\n-\n-```powershell\n-punch uninstall\n-```\n-\n-This removes Punch but preserves session history and preferences. To remove those files too, use `punch uninstall --remove-data`; it requires an explicit confirmation and lists the exact files first.\n-\n-For development or a source checkout, you need [Bun](https://bun.sh/) installed.\n-\n-```sh\n-bun install\n-```\n-\n-Run the app directly from the checkout:\n-\n-```sh\n-bun run start\n-```\n-\n-To make the `punch` command available globally from this checkout, link the package after installing:\n-\n-```sh\n-bun link\n-```\n-\n-You can then use the `punch` commands below from any directory. Alternatively, prefix commands with `bun run start --` when running directly from the checkout. With no command, `punch` opens the TUI in an interactive terminal. On the first launch, it asks for a clock format, visual style, and project-name behavior.\n-\n-## Command-line use\n-\n-```text\n-punch in [PROJECT]    Start a session. The default project is \"general\".\n-punch out             Stop the active session and save it.\n-punch status          Show the active session and elapsed time.\n-punch goal [HOURS]    Show or set the daily goal.\n-punch settings        Open settings in the TUI.\n-punch help            Print command help.\n-```\n-\n-`start` is an alias for `in`, and `stop` is an alias for `out`.\n-\n-Examples:\n-\n-```sh\n-punch in research\n-punch status\n-punch out\n-punch goal 6\n-```\n-\n-The goal accepts a number greater than 0 and up to 24 hours. It defaults to 8 hours.\n-\n-## TUI controls\n-\n-From the main screen:\n-\n-```text\n-i       Start a session and enter a project name\n-o       Ask for confirmation, then stop the active session\n-a       Open Activity\n-s       Open Settings\n-t       Cycle timer fonts\n-r       Cycle ring styles\n-c       Cycle ring concepts\n-?       Show help\n-q       Quit\n-```\n-\n-In Activity, `Tab` switches between Sessions and Analytics, the left and right arrow keys change the day, and `Esc` returns to the timer.\n-\n-In Settings and first-run setup, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back. Settings include the clock format, timer font, ring style, ring concept, and whether a new session can reuse the last project.\n-\n-## Activity\n-\n-Activity opens on the current day. Sessions shows each project, start time, stop time, and duration in chronological order. Analytics shows total time, session count, average session length, the top project, an hourly activity view, and project totals.\n-\n-The app does not assign a productivity score or collect notes.\n-\n-## Data files\n-\n-By default, `punch` stores session history in:\n-\n-```text\n-%APPDATA%/punch/punch.json                 When APPDATA is set (including on Windows)\n-$XDG_CONFIG_HOME/punch/punch.json          When APPDATA is unset and XDG_CONFIG_HOME is set\n-~/.config/punch/punch.json                 When neither variable is set\n-```\n-\n-Set `PUNCH_DATA` to use another history file. Preferences are stored beside it in `preferences.json`, or at the path in `PUNCH_PREFERENCES` if that variable is set.\n-\n-The files contain local JSON with timestamps, project names, durations, the daily goal, and display preferences. They are created when you save the first session or preference.\n-\n-## Development\n-\n-```sh\n-bun run dev       # Run with watch mode\n-bun run test      # Run the test suite\n-bun run typecheck # Check TypeScript without emitting files\n-bun run preview   # Render timer and ring design samples\n-bun run build:release # Build standalone release artifacts\n-bun run verify:package # Pack and test a clean npm installation\n-```\n-\n-On Windows, run the installer smoke test after building release artifacts:\n-\n-```powershell\n-pwsh -NoProfile -File .\\scripts\\verify-windows-installer.ps1\n-```\n-\n-Releases are built and published by GitHub Actions when a `v*` tag is pushed. The tag must match the version in `package.json`:\n-\n-```sh\n-git tag v0.1.0\n-git push origin v0.1.0\n-```\n-\n-The workflow runs the tests and typecheck, builds the Windows, macOS, and Linux artifacts, verifies their checksums and release manifest, then uploads them to the GitHub release. The one-line installers use those uploaded assets.\n-\n-The source lives in `src/`, tests live in `tests/`, and the preview script writes its plain-text output to `target/preview-ideas.txt`.\n-\n-## License\n-\n-MIT. See [LICENSE](MIT%20License).\n+# punch\r\n+\r\n+`punch` is a small terminal time tracker for project work. Start a session, stop it when you are done, and review the day in the interactive TUI.\r\n+\r\n+It is built with Bun, TypeScript, React, and Ink. Session history is stored in a local JSON file, so there is no server or account to configure.\r\n+\r\n+## Install\r\n+\r\n+For the published package, install Punch globally with npm:\r\n+\r\n+```sh\r\n+npm install --global punch\r\n+```\r\n+\r\n+Check the installed version with:\r\n+\r\n+```sh\r\n+punch --version\r\n+```\r\n+\r\n+To remove the npm installation:\r\n+\r\n+```sh\r\n+npm uninstall --global punch\r\n+```\r\n+\r\n+npm removes the program but does not remove session history or preferences. Those files stay in the data paths described below.\r\n+\r\n+For a standalone Windows install, run the PowerShell installer from the latest GitHub release:\r\n+\r\n+```powershell\r\n+irm https://raw.githubusercontent.com/squidllee/punch-in/main/install.ps1 | iex\r\n+```\r\n+\r\n+The installer verifies the release checksum, installs `punch.exe` under `%LOCALAPPDATA%\\punch\\bin`, and leaves session data untouched during upgrades.\r\n+\r\n+For a standalone macOS or Linux install, run:\r\n+\r\n+```sh\r\n+curl -fsSL https://raw.githubusercontent.com/squidllee/punch-in/main/install.sh | sh\r\n+```\r\n+\r\n+The script detects the operating system and architecture, verifies the release checksum, and installs `punch` under `~/.local/bin`. If that directory is not already on `PATH`, it prints the export command to add to your shell profile.\r\n+\r\n+To remove a standalone install, run:\r\n+\r\n+```powershell\r\n+punch uninstall\r\n+```\r\n+\r\n+This removes Punch but preserves session history and preferences. To remove those files too, use `punch uninstall --remove-data`; it requires an explicit confirmation and lists the exact files first.\r\n+\r\n+For development or a source checkout, you need [Bun](https://bun.sh/) installed.\r\n+\r\n+```sh\r\n+bun install\r\n+```\r\n+\r\n+Run the app directly from the checkout:\r\n+\r\n+```sh\r\n+bun run start\r\n+```\r\n+\r\n+To make the `punch` command available globally from this checkout, link the package after installing:\r\n+\r\n+```sh\r\n+bun link\r\n+```\r\n+\r\n+You can then use the `punch` commands below from any directory. Alternatively, prefix commands with `bun run start --` when running directly from the checkout. With no command, `punch` opens the TUI in an interactive terminal. On the first launch, it asks for a clock format, visual style, and project-name behavior.\r\n+\r\n+## Command-line use\r\n+\r\n+```text\r\n+punch in [PROJECT]    Start a session. The default project is \"general\".\r\n+punch out             Stop the active session and save it.\r\n+punch status          Show the active session and elapsed time.\r\n+punch goal [HOURS]    Show or set the daily goal.\r\n+punch settings        Open settings in the TUI.\r\n+punch help            Print command help.\r\n+```\r\n+\r\n+`start` is an alias for `in`, and `stop` is an alias for `out`.\r\n+\r\n+Examples:\r\n+\r\n+```sh\r\n+punch in research\r\n+punch status\r\n+punch out\r\n+punch goal 6\r\n+```\r\n+\r\n+The goal accepts a number greater than 0 and up to 24 hours. It defaults to 8 hours.\r\n+\r\n+## TUI controls\r\n+\r\n+From the main screen:\r\n+\r\n+```text\r\n+i       Start a session and enter a project name\r\n+o       Ask for confirmation, then stop the active session\r\n+a       Open Activity\r\n+s       Open Settings\r\n+t       Cycle timer fonts\r\n+r       Cycle ring styles\r\n+c       Cycle ring concepts\r\n+?       Show help\r\n+q       Quit\r\n+```\r\n+\r\n+In Activity, `Tab` switches between Sessions and Analytics, the left and right arrow keys change the day, and `Esc` returns to the timer.\r\n+\r\n+In Settings and first-run setup, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back. Settings include the clock format, timer font, ring style, ring concept, and whether a new session can reuse the last project.\r\n+\r\n+## Activity\r\n+\r\n+Activity opens on the current day. Sessions shows each project, start time, stop time, and duration in chronological order. Analytics shows total time, session count, average session length, the top project, an hourly activity view, and project totals.\r\n+\r\n+The app does not assign a productivity score or collect notes.\r\n+\r\n+## Data files\r\n+\r\n+By default, `punch` stores session history in:\r\n+\r\n+```text\r\n+%APPDATA%/punch/punch.json                 When APPDATA is set (including on Windows)\r\n+$XDG_CONFIG_HOME/punch/punch.json          When APPDATA is unset and XDG_CONFIG_HOME is set\r\n+~/.config/punch/punch.json                 When neither variable is set\r\n+```\r\n+\r\n+Set `PUNCH_DATA` to use another history file. Preferences are stored beside it in `preferences.json`, or at the path in `PUNCH_PREFERENCES` if that variable is set.\r\n+\r\n+The files contain local JSON with timestamps, project names, durations, the daily goal, and display preferences. They are created when you save the first session or preference.\r\n+\r\n+## Development\r\n+\r\n+```sh\r\n+bun run dev       # Run with watch mode\r\n+bun run test      # Run the test suite\r\n+bun run typecheck # Check TypeScript without emitting files\r\n+bun run preview   # Render timer and ring design samples\r\n+bun run build:release # Build standalone release artifacts\r\n+bun run verify:package # Pack and test a clean npm installation\r\n+```\r\n+\r\n+On Windows, run the installer smoke test after building release artifacts:\r\n+\r\n+```powershell\r\n+pwsh -NoProfile -File .\\scripts\\verify-windows-installer.ps1\r\n+```\r\n+\r\n+Releases are built and published by GitHub Actions when a `v*` tag is pushed. The tag must match the version in `package.json`:\r\n+\r\n+```sh\r\n+git tag v0.1.0\r\n+git push origin v0.1.0\r\n+```\r\n+\r\n+The workflow runs the tests and typecheck, builds the Windows, macOS, and Linux artifacts, verifies their checksums and release manifest, then uploads them to the GitHub release. The one-line installers use those uploaded assets.\r\n+\r\n+The source lives in `src/`, tests live in `tests/`, and the preview script writes its plain-text output to `target/preview-ideas.txt`.\r\n+\r\n+## License\r\n+\r\n+MIT. See [LICENSE](MIT%20License).\r\n",
+              "additions": 167,
+              "deletions": 167,
+              "status": "modified"
+            },
+            {
+              "file": "docs/distribution-and-uninstallation.md",
+              "patch": "Index: docs/distribution-and-uninstallation.md\n===================================================================\n--- docs/distribution-and-uninstallation.md\t\n+++ docs/distribution-and-uninstallation.md\t\n@@ -1,136 +1,136 @@\n-# Distribution and uninstallation plan\n-\n-This document describes how Punch should reach users and how each installation method should remove the program without removing user data by accident.\n-\n-## Goals\n-\n-- Make the first install a single command for users who do not want to manage runtimes.\n-- Publish an npm package for Node and Bun users.\n-- Keep building from source straightforward for contributors.\n-- Make removal predictable for every install method.\n-- Preserve session history and preferences unless the user explicitly asks to delete them.\n-\n-## Supported installation methods\n-\n-### npm package\n-\n-The primary package-manager install should be:\n-\n-```sh\n-npm install --global punch\n-```\n-\n-The published package should contain the built JavaScript entrypoint, production dependencies, and the files needed at runtime. It should not require users to run TypeScript directly.\n-\n-The package should expose a normal executable through `bin`. The build should target a supported Node version so that the package works with npm. Bun should remain supported for development and source installs.\n-\n-This path also gives users `npx punch` and, where supported, `bunx punch`.\n-\n-Uninstallation belongs to npm:\n-\n-```sh\n-npm uninstall --global punch\n-```\n-\n-`punch uninstall` should detect that Punch came from npm and print this command rather than trying to remove files from inside the package.\n-\n-### One-line installer\n-\n-The one-line installer is for users who want Punch without installing Node or Bun.\n-\n-macOS and Linux should use a shell installer:\n-\n-```sh\n-curl -fsSL https://punch.dev/install.sh | sh\n-```\n-\n-Windows should use a PowerShell installer:\n-\n-```powershell\n-irm https://punch.dev/install.ps1 | iex\n-```\n-\n-The installers should detect the operating system and architecture, download the matching release artifact, install it into a user-local directory, and explain any `PATH` change the user needs to make.\n-\n-The installer should not require administrator access by default. Suggested locations are `~/.local/bin` on macOS and Linux, and `%LOCALAPPDATA%\\\\punch\\\\bin` on Windows.\n-\n-Each install should write a small manifest beside the executable. The manifest should record the installed version, platform, architecture, install directory, and installer version. It gives `punch uninstall` enough information to remove the custom installation later.\n-\n-The downloaded artifact should have a published checksum. The installer should verify it before moving the executable into place. Release automation should produce the artifacts and checksums from the same version tag.\n-\n-### Build from source\n-\n-Contributors and users who prefer source builds should keep using Bun:\n-\n-```sh\n-git clone https://github.com/exodus712/punch-in.git\n-cd punch\n-bun install\n-bun run start\n-```\n-\n-The source workflow should not install or remove files outside the checkout. `punch uninstall` should explain that the source checkout must be removed manually and should offer the data removal command only if the user requests it.\n-\n-## Uninstallation behavior\n-\n-The default command is:\n-\n-```sh\n-punch uninstall\n-```\n-\n-It removes Punch while preserving session history and preferences.\n-\n-Deleting data is a separate, explicit operation:\n-\n-```sh\n-punch uninstall --remove-data\n-```\n-\n-This command must show the exact data files it will delete and require an affirmative confirmation. A declined confirmation must leave both the program and the data untouched.\n-\n-There will be no `--dry-run` command. The confirmation prompt is enough to show the destructive action before it occurs.\n-\n-The data removal option should cover the configured paths for:\n-\n-- session history, normally `punch.json`\n-- preferences, normally `preferences.json`\n-- any future Punch-owned files documented as user data\n-\n-It must respect `PUNCH_DATA` and `PUNCH_PREFERENCES`. It must not delete a parent configuration directory if that directory contains files that Punch did not create.\n-\n-## Installer-specific behavior\n-\n-### npm\n-\n-Print the npm uninstall command and exit. npm owns the package files.\n-\n-### System package managers\n-\n-Homebrew, Scoop, WinGet, and similar managers should own their files. If Punch can identify the manager, it should print the matching uninstall command. Punch should not bypass the manager.\n-\n-### One-line installer\n-\n-Use the install manifest to locate the executable and related files. On macOS and Linux, a helper can remove the executable after Punch exits. On Windows, the command should start a short-lived helper that waits for Punch to exit before deleting the locked executable.\n-\n-The uninstaller must only remove paths recorded by the manifest. It must not recursively remove a broad parent directory.\n-\n-### Source checkout\n-\n-Print source cleanup instructions and leave the checkout untouched. Data removal remains available through `--remove-data` after confirmation.\n-\n-## CLI and release work\n-\n-Implement the work in this order:\n-\n-1. Centralize the version used by the CLI and package metadata.\n-2. Add a production build that emits the npm entrypoint under `dist`.\n-3. Add package tests for a clean npm install and uninstall instructions.\n-4. Add release builds for the supported Windows, macOS, and Linux targets.\n-5. Add checksums and the install manifests.\n-6. Implement installer detection and `punch uninstall`.\n-7. Add `punch uninstall --remove-data` with confirmation and path-safety checks.\n-8. Add CI coverage for install, upgrade, uninstall, and data preservation.\n-9. Document the three install paths in the README.\n-\n-The first release should support npm, the one-line installers, and source installation. Homebrew, Scoop, and WinGet can follow once the release artifacts and uninstall behavior have been tested on clean machines.\n+# Distribution and uninstallation plan\r\n+\r\n+This document describes how Punch should reach users and how each installation method should remove the program without removing user data by accident.\r\n+\r\n+## Goals\r\n+\r\n+- Make the first install a single command for users who do not want to manage runtimes.\r\n+- Publish an npm package for Node and Bun users.\r\n+- Keep building from source straightforward for contributors.\r\n+- Make removal predictable for every install method.\r\n+- Preserve session history and preferences unless the user explicitly asks to delete them.\r\n+\r\n+## Supported installation methods\r\n+\r\n+### npm package\r\n+\r\n+The primary package-manager install should be:\r\n+\r\n+```sh\r\n+npm install --global punch\r\n+```\r\n+\r\n+The published package should contain the built JavaScript entrypoint, production dependencies, and the files needed at runtime. It should not require users to run TypeScript directly.\r\n+\r\n+The package should expose a normal executable through `bin`. The build should target a supported Node version so that the package works with npm. Bun should remain supported for development and source installs.\r\n+\r\n+This path also gives users `npx punch` and, where supported, `bunx punch`.\r\n+\r\n+Uninstallation belongs to npm:\r\n+\r\n+```sh\r\n+npm uninstall --global punch\r\n+```\r\n+\r\n+`punch uninstall` should detect that Punch came from npm and print this command rather than trying to remove files from inside the package.\r\n+\r\n+### One-line installer\r\n+\r\n+The one-line installer is for users who want Punch without installing Node or Bun.\r\n+\r\n+macOS and Linux should use a shell installer:\r\n+\r\n+```sh\r\n+curl -fsSL https://punch.dev/install.sh | sh\r\n+```\r\n+\r\n+Windows should use a PowerShell installer:\r\n+\r\n+```powershell\r\n+irm https://punch.dev/install.ps1 | iex\r\n+```\r\n+\r\n+The installers should detect the operating system and architecture, download the matching release artifact, install it into a user-local directory, and explain any `PATH` change the user needs to make.\r\n+\r\n+The installer should not require administrator access by default. Suggested locations are `~/.local/bin` on macOS and Linux, and `%LOCALAPPDATA%\\\\punch\\\\bin` on Windows.\r\n+\r\n+Each install should write a small manifest beside the executable. The manifest should record the installed version, platform, architecture, install directory, and installer version. It gives `punch uninstall` enough information to remove the custom installation later.\r\n+\r\n+The downloaded artifact should have a published checksum. The installer should verify it before moving the executable into place. Release automation should produce the artifacts and checksums from the same version tag.\r\n+\r\n+### Build from source\r\n+\r\n+Contributors and users who prefer source builds should keep using Bun:\r\n+\r\n+```sh\r\n+git clone https://github.com/squidllee/punch-in.git\r\n+cd punch\r\n+bun install\r\n+bun run start\r\n+```\r\n+\r\n+The source workflow should not install or remove files outside the checkout. `punch uninstall` should explain that the source checkout must be removed manually and should offer the data removal command only if the user requests it.\r\n+\r\n+## Uninstallation behavior\r\n+\r\n+The default command is:\r\n+\r\n+```sh\r\n+punch uninstall\r\n+```\r\n+\r\n+It removes Punch while preserving session history and preferences.\r\n+\r\n+Deleting data is a separate, explicit operation:\r\n+\r\n+```sh\r\n+punch uninstall --remove-data\r\n+```\r\n+\r\n+This command must show the exact data files it will delete and require an affirmative confirmation. A declined confirmation must leave both the program and the data untouched.\r\n+\r\n+There will be no `--dry-run` command. The confirmation prompt is enough to show the destructive action before it occurs.\r\n+\r\n+The data removal option should cover the configured paths for:\r\n+\r\n+- session history, normally `punch.json`\r\n+- preferences, normally `preferences.json`\r\n+- any future Punch-owned files documented as user data\r\n+\r\n+It must respect `PUNCH_DATA` and `PUNCH_PREFERENCES`. It must not delete a parent configuration directory if that directory contains files that Punch did not create.\r\n+\r\n+## Installer-specific behavior\r\n+\r\n+### npm\r\n+\r\n+Print the npm uninstall command and exit. npm owns the package files.\r\n+\r\n+### System package managers\r\n+\r\n+Homebrew, Scoop, WinGet, and similar managers should own their files. If Punch can identify the manager, it should print the matching uninstall command. Punch should not bypass the manager.\r\n+\r\n+### One-line installer\r\n+\r\n+Use the install manifest to locate the executable and related files. On macOS and Linux, a helper can remove the executable after Punch exits. On Windows, the command should start a short-lived helper that waits for Punch to exit before deleting the locked executable.\r\n+\r\n+The uninstaller must only remove paths recorded by the manifest. It must not recursively remove a broad parent directory.\r\n+\r\n+### Source checkout\r\n+\r\n+Print source cleanup instructions and leave the checkout untouched. Data removal remains available through `--remove-data` after confirmation.\r\n+\r\n+## CLI and release work\r\n+\r\n+Implement the work in this order:\r\n+\r\n+1. Centralize the version used by the CLI and package metadata.\r\n+2. Add a production build that emits the npm entrypoint under `dist`.\r\n+3. Add package tests for a clean npm install and uninstall instructions.\r\n+4. Add release builds for the supported Windows, macOS, and Linux targets.\r\n+5. Add checksums and the install manifests.\r\n+6. Implement installer detection and `punch uninstall`.\r\n+7. Add `punch uninstall --remove-data` with confirmation and path-safety checks.\r\n+8. Add CI coverage for install, upgrade, uninstall, and data preservation.\r\n+9. Document the three install paths in the README.\r\n+\r\n+The first release should support npm, the one-line installers, and source installation. Homebrew, Scoop, and WinGet can follow once the release artifacts and uninstall behavior have been tested on clean machines.\r\n",
+              "additions": 136,
+              "deletions": 136,
+              "status": "modified"
+            },
+            {
+              "file": "install.ps1",
+              "patch": "Index: install.ps1\n===================================================================\n--- install.ps1\t\n+++ install.ps1\t\n@@ -1,260 +1,260 @@\n-[CmdletBinding()]\n-param(\n-  [string]$Version = 'latest',\n-  [string]$BaseUrl,\n-  [string]$InstallDir,\n-  [switch]$NoPath\n-)\n-\n-$ErrorActionPreference = 'Stop'\n-$script:InstallerVersion = '1'\n-\n-function Get-DefaultInstallDirectory {\n-  if ($env:LOCALAPPDATA) {\n-    return Join-Path $env:LOCALAPPDATA 'punch\\bin'\n-  }\n-\n-  if ($env:USERPROFILE) {\n-    return Join-Path $env:USERPROFILE 'AppData\\Local\\punch\\bin'\n-  }\n-\n-  throw 'Could not determine a user-local installation directory.'\n-}\n-\n-function Get-DefaultBaseUrl([string]$RequestedVersion) {\n-  $repository = 'https://github.com/exodus712/punch-in/releases'\n-  if ($RequestedVersion -eq 'latest') {\n-    return \"$repository/latest/download\"\n-  }\n-\n-  if ($RequestedVersion -notmatch '^v?\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$') {\n-    throw \"Invalid version '$RequestedVersion'. Use 'latest' or a semantic version such as '0.1.0'.\"\n-  }\n-\n-  $normalizedVersion = $RequestedVersion.TrimStart('v')\n-  return \"$repository/download/v$normalizedVersion\"\n-}\n-\n-function ConvertTo-AbsolutePath([string]$Path, [string]$Name) {\n-  if ([string]::IsNullOrWhiteSpace($Path)) {\n-    throw \"$Name cannot be empty.\"\n-  }\n-\n-  if (-not [IO.Path]::IsPathRooted($Path)) {\n-    throw \"$Name must be an absolute path: $Path\"\n-  }\n-\n-  try {\n-    $fullPath = [IO.Path]::GetFullPath($Path)\n-  } catch {\n-    throw \"$Name is not a valid path: $Path\"\n-  }\n-\n-  return $fullPath\n-}\n-\n-function ConvertTo-BaseUri([string]$Url) {\n-  $uri = $null\n-  if (-not [Uri]::TryCreate($Url, [UriKind]::Absolute, [ref]$uri)) {\n-    throw \"BaseUrl is not an absolute URL: $Url\"\n-  }\n-\n-  if ($uri.UserInfo -or $uri.Query -or $uri.Fragment) {\n-    throw 'BaseUrl must not contain credentials, a query string, or a fragment.'\n-  }\n-\n-  if ($uri.Scheme -eq 'https') {\n-    return $uri\n-  }\n-\n-  $localHosts = @('localhost', '127.0.0.1', '::1')\n-  if ($uri.Scheme -ne 'http' -or $localHosts -notcontains $uri.Host) {\n-    throw 'BaseUrl must use HTTPS. HTTP is allowed only for localhost testing.'\n-  }\n-\n-  return $uri\n-}\n-\n-function Join-DownloadUrl([Uri]$BaseUri, [string]$FileName) {\n-  $escapedName = [Uri]::EscapeDataString($FileName)\n-  return \"$($BaseUri.AbsoluteUri.TrimEnd('/'))/$escapedName\"\n-}\n-\n-function Assert-SafeFileName([string]$FileName) {\n-  if ([string]::IsNullOrWhiteSpace($FileName) -or\n-      [IO.Path]::GetFileName($FileName) -ne $FileName -or\n-      $FileName -in @('.', '..')) {\n-    throw \"Release manifest contains an unsafe file name: $FileName\"\n-  }\n-}\n-\n-function Get-TextDownload([Uri]$Url) {\n-  $response = Invoke-WebRequest -Uri $Url -UseBasicParsing\n-  if ($response.Content -is [byte[]]) {\n-    return [Text.Encoding]::UTF8.GetString($response.Content)\n-  }\n-\n-  return [string]$response.Content\n-}\n-\n-function Save-Download([Uri]$Url, [string]$Destination) {\n-  Invoke-WebRequest -Uri $Url -UseBasicParsing -OutFile $Destination\n-}\n-\n-function Get-WindowsArtifact([object]$Manifest, [string]$RequestedVersion) {\n-  if ($null -eq $Manifest -or $Manifest.name -ne 'punch') {\n-    throw 'The release manifest is missing or is not a Punch manifest.'\n-  }\n-\n-  if ($Manifest.version -notmatch '^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$') {\n-    throw 'The release manifest contains an invalid version.'\n-  }\n-\n-  if ($RequestedVersion -ne 'latest' -and $Manifest.version -ne $RequestedVersion.TrimStart('v')) {\n-    throw \"Requested version '$RequestedVersion' does not match manifest version '$($Manifest.version)'.\"\n-  }\n-\n-  $artifact = @(@($Manifest.artifacts) | Where-Object {\n-    $_.platform -eq 'windows' -and\n-    $_.architecture -eq 'x64' -and\n-    $_.target -eq 'bun-windows-x64'\n-  })\n-\n-  if ($artifact.Count -ne 1) {\n-    throw 'The release manifest does not contain exactly one Windows x64 artifact.'\n-  }\n-\n-  if ($artifact.file -notmatch '^punch-v[^/\\\\]+-windows-x64\\.exe$') {\n-    throw \"The release manifest contains an invalid Windows artifact name: $($artifact.file)\"\n-  }\n-\n-  Assert-SafeFileName $artifact.file\n-\n-  if ($artifact.sha256 -notmatch '^[0-9a-fA-F]{64}$') {\n-    throw 'The release manifest contains an invalid SHA-256 digest.'\n-  }\n-\n-  return $artifact\n-}\n-\n-function Get-Checksum([string]$ChecksumText, [string]$ExpectedFile) {\n-  $line = ($ChecksumText -split \"`r?`n\" | Where-Object { $_.Trim() } | Select-Object -First 1)\n-  if ($line -notmatch '^\\s*([0-9a-fA-F]{64})\\s+(.+?)\\s*$') {\n-    throw \"The checksum file for $ExpectedFile is malformed.\"\n-  }\n-\n-  $actualFile = $Matches[2].Trim().TrimStart('*')\n-  if ($actualFile -ne $ExpectedFile) {\n-    throw \"The checksum file names '$actualFile' instead of '$ExpectedFile'.\"\n-  }\n-\n-  return $Matches[1].ToLowerInvariant()\n-}\n-\n-function Add-ToUserPath([string]$Directory) {\n-  $currentPath = [Environment]::GetEnvironmentVariable('Path', 'User')\n-  $entries = @()\n-  if ($currentPath) {\n-    $entries = $currentPath -split ';' | Where-Object { $_ }\n-  }\n-\n-  $alreadyPresent = $entries | Where-Object {\n-    try {\n-      [IO.Path]::GetFullPath($_).TrimEnd('\\', '/') -ieq $Directory.TrimEnd('\\', '/')\n-    } catch {\n-      $false\n-    }\n-  }\n-\n-  if (-not $alreadyPresent) {\n-    $newPath = (@($entries) + $Directory) -join ';'\n-    [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')\n-    Write-Host \"Added $Directory to the user PATH. Open a new terminal to use 'punch'.\"\n-  }\n-}\n-\n-$tempDir = $null\n-$stagedExecutable = $null\n-$stagedManifest = $null\n-\n-try {\n-  if (-not $InstallDir) {\n-    $InstallDir = Get-DefaultInstallDirectory\n-  }\n-  $InstallDir = ConvertTo-AbsolutePath $InstallDir 'InstallDir'\n-\n-  if (-not $BaseUrl) {\n-    $BaseUrl = Get-DefaultBaseUrl $Version\n-  }\n-  $baseUri = ConvertTo-BaseUri $BaseUrl\n-\n-  $tempDir = Join-Path ([IO.Path]::GetTempPath()) \"punch-install-$([Guid]::NewGuid().ToString('N'))\"\n-  New-Item -ItemType Directory -Path $tempDir -Force | Out-Null\n-\n-  Write-Host \"Reading release manifest from $($baseUri.AbsoluteUri)...\"\n-  $manifestText = Get-TextDownload (Join-DownloadUrl $baseUri 'release-manifest.json')\n-  $manifest = $manifestText | ConvertFrom-Json\n-  $artifact = Get-WindowsArtifact $manifest $Version\n-  $artifactFile = [IO.Path]::GetFileName($artifact.file)\n-  $checksumFile = \"$artifactFile.sha256\"\n-  $artifactPath = Join-Path $tempDir $artifactFile\n-  $checksumPath = Join-Path $tempDir $checksumFile\n-\n-  Write-Host \"Downloading $artifactFile...\"\n-  Save-Download (Join-DownloadUrl $baseUri $artifactFile) $artifactPath\n-  Save-Download (Join-DownloadUrl $baseUri $checksumFile) $checksumPath\n-\n-  $checksumText = [IO.File]::ReadAllText($checksumPath)\n-  $checksum = Get-Checksum $checksumText $artifactFile\n-  $manifestChecksum = $artifact.sha256.ToLowerInvariant()\n-  if ($checksum -ne $manifestChecksum) {\n-    throw 'The downloaded checksum does not match the release manifest.'\n-  }\n-\n-  $actualChecksum = (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant()\n-  if ($actualChecksum -ne $manifestChecksum) {\n-    throw \"SHA-256 verification failed for $artifactFile.\"\n-  }\n-\n-  New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null\n-  $targetPath = Join-Path $InstallDir 'punch.exe'\n-  $stagedExecutable = Join-Path $InstallDir \".punch.exe.$([Guid]::NewGuid().ToString('N')).tmp\"\n-  Copy-Item -LiteralPath $artifactPath -Destination $stagedExecutable\n-\n-  Move-Item -LiteralPath $stagedExecutable -Destination $targetPath -Force\n-  $stagedExecutable = $null\n-\n-  $installManifest = [ordered]@{\n-    name = 'punch'\n-    version = $manifest.version\n-    platform = 'windows'\n-    architecture = 'x64'\n-    installDirectory = $InstallDir\n-    executable = $targetPath\n-    installerVersion = $script:InstallerVersion\n-  }\n-  $manifestPath = Join-Path $InstallDir 'punch-install.json'\n-  $manifestJson = $installManifest | ConvertTo-Json\n-  $stagedManifest = Join-Path $InstallDir \".punch-install.$([Guid]::NewGuid().ToString('N')).tmp\"\n-  [IO.File]::WriteAllText($stagedManifest, $manifestJson, [Text.UTF8Encoding]::new($false))\n-  Move-Item -LiteralPath $stagedManifest -Destination $manifestPath -Force\n-  $stagedManifest = $null\n-\n-  if (-not $NoPath) {\n-    Add-ToUserPath $InstallDir\n-  }\n-\n-  Write-Host \"Installed punch $($manifest.version) to $targetPath\"\n-} catch {\n-  if ($stagedExecutable -and (Test-Path -LiteralPath $stagedExecutable)) {\n-    Remove-Item -LiteralPath $stagedExecutable -Force -ErrorAction SilentlyContinue\n-  }\n-  if ($stagedManifest -and (Test-Path -LiteralPath $stagedManifest)) {\n-    Remove-Item -LiteralPath $stagedManifest -Force -ErrorAction SilentlyContinue\n-  }\n-  throw\n-} finally {\n-  if ($tempDir -and (Test-Path -LiteralPath $tempDir)) {\n-    Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue\n-  }\n-}\n+[CmdletBinding()]\r\n+param(\r\n+  [string]$Version = 'latest',\r\n+  [string]$BaseUrl,\r\n+  [string]$InstallDir,\r\n+  [switch]$NoPath\r\n+)\r\n+\r\n+$ErrorActionPreference = 'Stop'\r\n+$script:InstallerVersion = '1'\r\n+\r\n+function Get-DefaultInstallDirectory {\r\n+  if ($env:LOCALAPPDATA) {\r\n+    return Join-Path $env:LOCALAPPDATA 'punch\\bin'\r\n+  }\r\n+\r\n+  if ($env:USERPROFILE) {\r\n+    return Join-Path $env:USERPROFILE 'AppData\\Local\\punch\\bin'\r\n+  }\r\n+\r\n+  throw 'Could not determine a user-local installation directory.'\r\n+}\r\n+\r\n+function Get-DefaultBaseUrl([string]$RequestedVersion) {\r\n+  $repository = 'https://github.com/squidllee/punch-in/releases'\r\n+  if ($RequestedVersion -eq 'latest') {\r\n+    return \"$repository/latest/download\"\r\n+  }\r\n+\r\n+  if ($RequestedVersion -notmatch '^v?\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$') {\r\n+    throw \"Invalid version '$RequestedVersion'. Use 'latest' or a semantic version such as '0.1.0'.\"\r\n+  }\r\n+\r\n+  $normalizedVersion = $RequestedVersion.TrimStart('v')\r\n+  return \"$repository/download/v$normalizedVersion\"\r\n+}\r\n+\r\n+function ConvertTo-AbsolutePath([string]$Path, [string]$Name) {\r\n+  if ([string]::IsNullOrWhiteSpace($Path)) {\r\n+    throw \"$Name cannot be empty.\"\r\n+  }\r\n+\r\n+  if (-not [IO.Path]::IsPathRooted($Path)) {\r\n+    throw \"$Name must be an absolute path: $Path\"\r\n+  }\r\n+\r\n+  try {\r\n+    $fullPath = [IO.Path]::GetFullPath($Path)\r\n+  } catch {\r\n+    throw \"$Name is not a valid path: $Path\"\r\n+  }\r\n+\r\n+  return $fullPath\r\n+}\r\n+\r\n+function ConvertTo-BaseUri([string]$Url) {\r\n+  $uri = $null\r\n+  if (-not [Uri]::TryCreate($Url, [UriKind]::Absolute, [ref]$uri)) {\r\n+    throw \"BaseUrl is not an absolute URL: $Url\"\r\n+  }\r\n+\r\n+  if ($uri.UserInfo -or $uri.Query -or $uri.Fragment) {\r\n+    throw 'BaseUrl must not contain credentials, a query string, or a fragment.'\r\n+  }\r\n+\r\n+  if ($uri.Scheme -eq 'https') {\r\n+    return $uri\r\n+  }\r\n+\r\n+  $localHosts = @('localhost', '127.0.0.1', '::1')\r\n+  if ($uri.Scheme -ne 'http' -or $localHosts -notcontains $uri.Host) {\r\n+    throw 'BaseUrl must use HTTPS. HTTP is allowed only for localhost testing.'\r\n+  }\r\n+\r\n+  return $uri\r\n+}\r\n+\r\n+function Join-DownloadUrl([Uri]$BaseUri, [string]$FileName) {\r\n+  $escapedName = [Uri]::EscapeDataString($FileName)\r\n+  return \"$($BaseUri.AbsoluteUri.TrimEnd('/'))/$escapedName\"\r\n+}\r\n+\r\n+function Assert-SafeFileName([string]$FileName) {\r\n+  if ([string]::IsNullOrWhiteSpace($FileName) -or\r\n+      [IO.Path]::GetFileName($FileName) -ne $FileName -or\r\n+      $FileName -in @('.', '..')) {\r\n+    throw \"Release manifest contains an unsafe file name: $FileName\"\r\n+  }\r\n+}\r\n+\r\n+function Get-TextDownload([Uri]$Url) {\r\n+  $response = Invoke-WebRequest -Uri $Url -UseBasicParsing\r\n+  if ($response.Content -is [byte[]]) {\r\n+    return [Text.Encoding]::UTF8.GetString($response.Content)\r\n+  }\r\n+\r\n+  return [string]$response.Content\r\n+}\r\n+\r\n+function Save-Download([Uri]$Url, [string]$Destination) {\r\n+  Invoke-WebRequest -Uri $Url -UseBasicParsing -OutFile $Destination\r\n+}\r\n+\r\n+function Get-WindowsArtifact([object]$Manifest, [string]$RequestedVersion) {\r\n+  if ($null -eq $Manifest -or $Manifest.name -ne 'punch') {\r\n+    throw 'The release manifest is missing or is not a Punch manifest.'\r\n+  }\r\n+\r\n+  if ($Manifest.version -notmatch '^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$') {\r\n+    throw 'The release manifest contains an invalid version.'\r\n+  }\r\n+\r\n+  if ($RequestedVersion -ne 'latest' -and $Manifest.version -ne $RequestedVersion.TrimStart('v')) {\r\n+    throw \"Requested version '$RequestedVersion' does not match manifest version '$($Manifest.version)'.\"\r\n+  }\r\n+\r\n+  $artifact = @(@($Manifest.artifacts) | Where-Object {\r\n+    $_.platform -eq 'windows' -and\r\n+    $_.architecture -eq 'x64' -and\r\n+    $_.target -eq 'bun-windows-x64'\r\n+  })\r\n+\r\n+  if ($artifact.Count -ne 1) {\r\n+    throw 'The release manifest does not contain exactly one Windows x64 artifact.'\r\n+  }\r\n+\r\n+  if ($artifact.file -notmatch '^punch-v[^/\\\\]+-windows-x64\\.exe$') {\r\n+    throw \"The release manifest contains an invalid Windows artifact name: $($artifact.file)\"\r\n+  }\r\n+\r\n+  Assert-SafeFileName $artifact.file\r\n+\r\n+  if ($artifact.sha256 -notmatch '^[0-9a-fA-F]{64}$') {\r\n+    throw 'The release manifest contains an invalid SHA-256 digest.'\r\n+  }\r\n+\r\n+  return $artifact\r\n+}\r\n+\r\n+function Get-Checksum([string]$ChecksumText, [string]$ExpectedFile) {\r\n+  $line = ($ChecksumText -split \"`r?`n\" | Where-Object { $_.Trim() } | Select-Object -First 1)\r\n+  if ($line -notmatch '^\\s*([0-9a-fA-F]{64})\\s+(.+?)\\s*$') {\r\n+    throw \"The checksum file for $ExpectedFile is malformed.\"\r\n+  }\r\n+\r\n+  $actualFile = $Matches[2].Trim().TrimStart('*')\r\n+  if ($actualFile -ne $ExpectedFile) {\r\n+    throw \"The checksum file names '$actualFile' instead of '$ExpectedFile'.\"\r\n+  }\r\n+\r\n+  return $Matches[1].ToLowerInvariant()\r\n+}\r\n+\r\n+function Add-ToUserPath([string]$Directory) {\r\n+  $currentPath = [Environment]::GetEnvironmentVariable('Path', 'User')\r\n+  $entries = @()\r\n+  if ($currentPath) {\r\n+    $entries = $currentPath -split ';' | Where-Object { $_ }\r\n+  }\r\n+\r\n+  $alreadyPresent = $entries | Where-Object {\r\n+    try {\r\n+      [IO.Path]::GetFullPath($_).TrimEnd('\\', '/') -ieq $Directory.TrimEnd('\\', '/')\r\n+    } catch {\r\n+      $false\r\n+    }\r\n+  }\r\n+\r\n+  if (-not $alreadyPresent) {\r\n+    $newPath = (@($entries) + $Directory) -join ';'\r\n+    [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')\r\n+    Write-Host \"Added $Directory to the user PATH. Open a new terminal to use 'punch'.\"\r\n+  }\r\n+}\r\n+\r\n+$tempDir = $null\r\n+$stagedExecutable = $null\r\n+$stagedManifest = $null\r\n+\r\n+try {\r\n+  if (-not $InstallDir) {\r\n+    $InstallDir = Get-DefaultInstallDirectory\r\n+  }\r\n+  $InstallDir = ConvertTo-AbsolutePath $InstallDir 'InstallDir'\r\n+\r\n+  if (-not $BaseUrl) {\r\n+    $BaseUrl = Get-DefaultBaseUrl $Version\r\n+  }\r\n+  $baseUri = ConvertTo-BaseUri $BaseUrl\r\n+\r\n+  $tempDir = Join-Path ([IO.Path]::GetTempPath()) \"punch-install-$([Guid]::NewGuid().ToString('N'))\"\r\n+  New-Item -ItemType Directory -Path $tempDir -Force | Out-Null\r\n+\r\n+  Write-Host \"Reading release manifest from $($baseUri.AbsoluteUri)...\"\r\n+  $manifestText = Get-TextDownload (Join-DownloadUrl $baseUri 'release-manifest.json')\r\n+  $manifest = $manifestText | ConvertFrom-Json\r\n+  $artifact = Get-WindowsArtifact $manifest $Version\r\n+  $artifactFile = [IO.Path]::GetFileName($artifact.file)\r\n+  $checksumFile = \"$artifactFile.sha256\"\r\n+  $artifactPath = Join-Path $tempDir $artifactFile\r\n+  $checksumPath = Join-Path $tempDir $checksumFile\r\n+\r\n+  Write-Host \"Downloading $artifactFile...\"\r\n+  Save-Download (Join-DownloadUrl $baseUri $artifactFile) $artifactPath\r\n+  Save-Download (Join-DownloadUrl $baseUri $checksumFile) $checksumPath\r\n+\r\n+  $checksumText = [IO.File]::ReadAllText($checksumPath)\r\n+  $checksum = Get-Checksum $checksumText $artifactFile\r\n+  $manifestChecksum = $artifact.sha256.ToLowerInvariant()\r\n+  if ($checksum -ne $manifestChecksum) {\r\n+    throw 'The downloaded checksum does not match the release manifest.'\r\n+  }\r\n+\r\n+  $actualChecksum = (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant()\r\n+  if ($actualChecksum -ne $manifestChecksum) {\r\n+    throw \"SHA-256 verification failed for $artifactFile.\"\r\n+  }\r\n+\r\n+  New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null\r\n+  $targetPath = Join-Path $InstallDir 'punch.exe'\r\n+  $stagedExecutable = Join-Path $InstallDir \".punch.exe.$([Guid]::NewGuid().ToString('N')).tmp\"\r\n+  Copy-Item -LiteralPath $artifactPath -Destination $stagedExecutable\r\n+\r\n+  Move-Item -LiteralPath $stagedExecutable -Destination $targetPath -Force\r\n+  $stagedExecutable = $null\r\n+\r\n+  $installManifest = [ordered]@{\r\n+    name = 'punch'\r\n+    version = $manifest.version\r\n+    platform = 'windows'\r\n+    architecture = 'x64'\r\n+    installDirectory = $InstallDir\r\n+    executable = $targetPath\r\n+    installerVersion = $script:InstallerVersion\r\n+  }\r\n+  $manifestPath = Join-Path $InstallDir 'punch-install.json'\r\n+  $manifestJson = $installManifest | ConvertTo-Json\r\n+  $stagedManifest = Join-Path $InstallDir \".punch-install.$([Guid]::NewGuid().ToString('N')).tmp\"\r\n+  [IO.File]::WriteAllText($stagedManifest, $manifestJson, [Text.UTF8Encoding]::new($false))\r\n+  Move-Item -LiteralPath $stagedManifest -Destination $manifestPath -Force\r\n+  $stagedManifest = $null\r\n+\r\n+  if (-not $NoPath) {\r\n+    Add-ToUserPath $InstallDir\r\n+  }\r\n+\r\n+  Write-Host \"Installed punch $($manifest.version) to $targetPath\"\r\n+} catch {\r\n+  if ($stagedExecutable -and (Test-Path -LiteralPath $stagedExecutable)) {\r\n+    Remove-Item -LiteralPath $stagedExecutable -Force -ErrorAction SilentlyContinue\r\n+  }\r\n+  if ($stagedManifest -and (Test-Path -LiteralPath $stagedManifest)) {\r\n+    Remove-Item -LiteralPath $stagedManifest -Force -ErrorAction SilentlyContinue\r\n+  }\r\n+  throw\r\n+} finally {\r\n+  if ($tempDir -and (Test-Path -LiteralPath $tempDir)) {\r\n+    Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue\r\n+  }\r\n+}\r\n",
+              "additions": 260,
+              "deletions": 260,
+              "status": "modified"
+            },
+            {
+              "file": "install.sh",
+              "patch": "Index: install.sh\n===================================================================\n--- install.sh\t\n+++ install.sh\t\n@@ -1,222 +1,222 @@\n-#!/usr/bin/env sh\n-set -eu\n-\n-REPOSITORY='https://github.com/exodus712/punch-in/releases'\n-INSTALLER_VERSION='1'\n-VERSION=\"${PUNCH_VERSION:-latest}\"\n-BASE_URL=\"${PUNCH_BASE_URL:-}\"\n-INSTALL_DIR=\"${PUNCH_INSTALL_DIR:-$HOME/.local/bin}\"\n-ALLOW_HTTP=\"${PUNCH_ALLOW_HTTP:-0}\"\n-\n-die() {\n-  printf 'error: %s\\n' \"$1\" >&2\n-  exit 1\n-}\n-\n-usage() {\n-  cat <<'EOF'\n-Install Punch from a GitHub Release.\n-\n-Options:\n-  --version VERSION       Install a specific version instead of latest.\n-  --base-url URL          Override the release asset base URL for testing.\n-  --install-dir DIRECTORY Install to a different directory.\n-  --allow-http            Allow HTTP only for local testing.\n-  -h, --help              Show this help.\n-\n-Examples:\n-  curl -fsSL https://raw.githubusercontent.com/exodus712/punch-in/main/install.sh | sh\n-  curl -fsSL https://raw.githubusercontent.com/exodus712/punch-in/main/install.sh | sh -s -- --version 0.1.0\n-EOF\n-}\n-\n-while [ \"$#\" -gt 0 ]; do\n-  case \"$1\" in\n-    --version)\n-      [ \"$#\" -ge 2 ] || die '--version requires a value'\n-      VERSION=$2\n-      shift 2\n-      ;;\n-    --base-url)\n-      [ \"$#\" -ge 2 ] || die '--base-url requires a value'\n-      BASE_URL=$2\n-      shift 2\n-      ;;\n-    --install-dir)\n-      [ \"$#\" -ge 2 ] || die '--install-dir requires a value'\n-      INSTALL_DIR=$2\n-      shift 2\n-      ;;\n-    --allow-http)\n-      ALLOW_HTTP=1\n-      shift\n-      ;;\n-    -h|--help)\n-      usage\n-      exit 0\n-      ;;\n-    *)\n-      die \"unknown option '$1'\"\n-      ;;\n-  esac\n-done\n-\n-case \"$(uname -s)\" in\n-  Darwin)\n-    PLATFORM='macos'\n-    ;;\n-  Linux)\n-    PLATFORM='linux'\n-    ;;\n-  *)\n-    die 'install.sh supports macOS and Linux only'\n-    ;;\n-esac\n-\n-case \"$(uname -m)\" in\n-  x86_64|amd64)\n-    ARCHITECTURE='x64'\n-    ;;\n-  arm64|aarch64)\n-    ARCHITECTURE='arm64'\n-    ;;\n-  *)\n-    die \"unsupported CPU architecture: $(uname -m)\"\n-    ;;\n-esac\n-\n-case \"$VERSION\" in\n-  latest) ;;\n-  v[0-9]*|[0-9]*)\n-    VERSION=${VERSION#v}\n-    printf '%s\\n' \"$VERSION\" | grep -Eq '^[0-9]+\\.[0-9]+\\.[0-9]+([.+-][0-9A-Za-z.-]+)?$' || die \"invalid version: $VERSION\"\n-    ;;\n-  *)\n-    die \"invalid version: $VERSION\"\n-    ;;\n-esac\n-\n-case \"$INSTALL_DIR\" in\n-  /*) ;;\n-  *) die '--install-dir must be an absolute path' ;;\n-esac\n-\n-case \"$INSTALL_DIR\" in\n-  /|\"$HOME\") die '--install-dir cannot be a filesystem root or home directory' ;;\n-esac\n-\n-case \"$INSTALL_DIR\" in\n-  *'\"'*) die '--install-dir contains characters that cannot be written to the install manifest' ;;\n-esac\n-\n-if [ -z \"$BASE_URL\" ]; then\n-  if [ \"$VERSION\" = 'latest' ]; then\n-    BASE_URL=\"$REPOSITORY/latest/download\"\n-  else\n-    BASE_URL=\"$REPOSITORY/download/v$VERSION\"\n-  fi\n-fi\n-\n-case \"$BASE_URL\" in\n-  https://*) ;;\n-  http://localhost/*|http://localhost|http://127.0.0.1/*|http://127.0.0.1|http://\\[::1\\]/*|http://\\[::1\\])\n-    [ \"$ALLOW_HTTP\" = '1' ] || die 'HTTP is allowed only with --allow-http for local testing'\n-    ;;\n-  *)\n-    die 'base URL must use HTTPS'\n-    ;;\n-esac\n-\n-case \"$BASE_URL\" in\n-  *'?'*|*'#'*) die 'base URL must not contain a query string or fragment' ;;\n-esac\n-\n-command -v curl >/dev/null 2>&1 || die 'curl is required'\n-\n-if command -v sha256sum >/dev/null 2>&1; then\n-  hash_file() { sha256sum \"$1\" | awk '{print $1}'; }\n-elif command -v shasum >/dev/null 2>&1; then\n-  hash_file() { shasum -a 256 \"$1\" | awk '{print $1}'; }\n-else\n-  die 'sha256sum or shasum is required'\n-fi\n-\n-download() {\n-  curl --fail --silent --show-error --location --proto '=https,http' --tlsv1.2 \"$1\" --output \"$2\"\n-}\n-\n-json_string() {\n-  key=$1\n-  file=$2\n-  sed -n \"s/^[[:space:]]*\\\"$key\\\"[[:space:]]*:[[:space:]]*\\\"\\([^\\\"]*\\)\\\".*/\\1/p\" \"$file\" | head -n 1\n-}\n-\n-temp_dir=$(mktemp -d \"${TMPDIR:-/tmp}/punch-install.XXXXXX\") || die 'could not create a temporary directory'\n-staged_path=''\n-staged_manifest=''\n-cleanup() {\n-  rm -rf \"$temp_dir\"\n-  [ -z \"$staged_path\" ] || rm -f \"$staged_path\"\n-  [ -z \"$staged_manifest\" ] || rm -f \"$staged_manifest\"\n-}\n-trap cleanup EXIT HUP INT TERM\n-umask 077\n-\n-manifest_file=\"$temp_dir/release-manifest.json\"\n-manifest_url=\"${BASE_URL%/}/release-manifest.json\"\n-printf 'Reading release manifest from %s...\\n' \"$manifest_url\"\n-download \"$manifest_url\" \"$manifest_file\"\n-\n-manifest_version=$(json_string version \"$manifest_file\")\n-manifest_name=$(json_string name \"$manifest_file\")\n-[ \"$manifest_name\" = 'punch' ] || die 'release manifest is not a Punch manifest'\n-[ -n \"$manifest_version\" ] || die 'release manifest does not contain a version'\n-printf '%s\\n' \"$manifest_version\" | grep -Eq '^[0-9]+\\.[0-9]+\\.[0-9]+([.+-][0-9A-Za-z.-]+)?$' || die \"release manifest contains an invalid version: $manifest_version\"\n-\n-if [ \"$VERSION\" != 'latest' ] && [ \"$manifest_version\" != \"$VERSION\" ]; then\n-  die \"requested version $VERSION does not match release manifest version $manifest_version\"\n-fi\n-\n-artifact_file=\"punch-v${manifest_version}-${PLATFORM}-${ARCHITECTURE}\"\n-case \"$PLATFORM\" in\n-  windows) artifact_file=\"${artifact_file}.exe\" ;;\n-esac\n-\n-grep -Fq \"\\\"file\\\": \\\"$artifact_file\\\"\" \"$manifest_file\" || die \"release does not contain $artifact_file\"\n-\n-artifact_path=\"$temp_dir/$artifact_file\"\n-checksum_path=\"$temp_dir/$artifact_file.sha256\"\n-download \"${BASE_URL%/}/$artifact_file\" \"$artifact_path\"\n-download \"${BASE_URL%/}/$artifact_file.sha256\" \"$checksum_path\"\n-\n-checksum_line=$(sed -n '1p' \"$checksum_path\")\n-expected_checksum=$(printf '%s\\n' \"$checksum_line\" | awk '{print $1}')\n-checksum_name=$(printf '%s\\n' \"$checksum_line\" | awk '{print $2}' | sed 's/^\\*//')\n-printf '%s\\n' \"$expected_checksum\" | grep -Eq '^[0-9a-fA-F]{64}$' || die \"checksum file for $artifact_file is malformed\"\n-[ \"$checksum_name\" = \"$artifact_file\" ] || die \"checksum file names $checksum_name instead of $artifact_file\"\n-\n-actual_checksum=$(hash_file \"$artifact_path\")\n-[ \"$actual_checksum\" = \"$expected_checksum\" ] || die \"SHA-256 verification failed for $artifact_file\"\n-\n-mkdir -p \"$INSTALL_DIR\"\n-target_path=\"$INSTALL_DIR/punch\"\n-staged_path=\"$INSTALL_DIR/.punch.$$.tmp\"\n-manifest_target=\"$INSTALL_DIR/punch-install.json\"\n-staged_manifest=\"$INSTALL_DIR/.punch-install.$$.tmp\"\n-\n-cp \"$artifact_path\" \"$staged_path\"\n-chmod 755 \"$staged_path\"\n-mv -f \"$staged_path\" \"$target_path\"\n-\n-printf '{\\n  \"name\": \"punch\",\\n  \"version\": \"%s\",\\n  \"platform\": \"%s\",\\n  \"architecture\": \"%s\",\\n  \"installDirectory\": \"%s\",\\n  \"executable\": \"%s\",\\n  \"installerVersion\": \"%s\"\\n}\\n' \\\n-  \"$manifest_version\" \"$PLATFORM\" \"$ARCHITECTURE\" \"$INSTALL_DIR\" \"$target_path\" \"$INSTALLER_VERSION\" \\\n-  > \"$staged_manifest\"\n-mv -f \"$staged_manifest\" \"$manifest_target\"\n-\n-printf 'Installed punch %s to %s\\n' \"$manifest_version\" \"$target_path\"\n-case \":${PATH:-}:\" in\n-  *\":$INSTALL_DIR:\"*) ;;\n-  *)\n-    printf 'Add this directory to PATH in your shell profile:\\n  export PATH=\"%s:$PATH\"\\n' \"$INSTALL_DIR\"\n-    ;;\n-esac\n+#!/usr/bin/env sh\r\n+set -eu\r\n+\r\n+REPOSITORY='https://github.com/squidllee/punch-in/releases'\r\n+INSTALLER_VERSION='1'\r\n+VERSION=\"${PUNCH_VERSION:-latest}\"\r\n+BASE_URL=\"${PUNCH_BASE_URL:-}\"\r\n+INSTALL_DIR=\"${PUNCH_INSTALL_DIR:-$HOME/.local/bin}\"\r\n+ALLOW_HTTP=\"${PUNCH_ALLOW_HTTP:-0}\"\r\n+\r\n+die() {\r\n+  printf 'error: %s\\n' \"$1\" >&2\r\n+  exit 1\r\n+}\r\n+\r\n+usage() {\r\n+  cat <<'EOF'\r\n+Install Punch from a GitHub Release.\r\n+\r\n+Options:\r\n+  --version VERSION       Install a specific version instead of latest.\r\n+  --base-url URL          Override the release asset base URL for testing.\r\n+  --install-dir DIRECTORY Install to a different directory.\r\n+  --allow-http            Allow HTTP only for local testing.\r\n+  -h, --help              Show this help.\r\n+\r\n+Examples:\r\n+  curl -fsSL https://raw.githubusercontent.com/squidllee/punch-in/main/install.sh | sh\r\n+  curl -fsSL https://raw.githubusercontent.com/squidllee/punch-in/main/install.sh | sh -s -- --version 0.1.0\r\n+EOF\r\n+}\r\n+\r\n+while [ \"$#\" -gt 0 ]; do\r\n+  case \"$1\" in\r\n+    --version)\r\n+      [ \"$#\" -ge 2 ] || die '--version requires a value'\r\n+      VERSION=$2\r\n+      shift 2\r\n+      ;;\r\n+    --base-url)\r\n+      [ \"$#\" -ge 2 ] || die '--base-url requires a value'\r\n+      BASE_URL=$2\r\n+      shift 2\r\n+      ;;\r\n+    --install-dir)\r\n+      [ \"$#\" -ge 2 ] || die '--install-dir requires a value'\r\n+      INSTALL_DIR=$2\r\n+      shift 2\r\n+      ;;\r\n+    --allow-http)\r\n+      ALLOW_HTTP=1\r\n+      shift\r\n+      ;;\r\n+    -h|--help)\r\n+      usage\r\n+      exit 0\r\n+      ;;\r\n+    *)\r\n+      die \"unknown option '$1'\"\r\n+      ;;\r\n+  esac\r\n+done\r\n+\r\n+case \"$(uname -s)\" in\r\n+  Darwin)\r\n+    PLATFORM='macos'\r\n+    ;;\r\n+  Linux)\r\n+    PLATFORM='linux'\r\n+    ;;\r\n+  *)\r\n+    die 'install.sh supports macOS and Linux only'\r\n+    ;;\r\n+esac\r\n+\r\n+case \"$(uname -m)\" in\r\n+  x86_64|amd64)\r\n+    ARCHITECTURE='x64'\r\n+    ;;\r\n+  arm64|aarch64)\r\n+    ARCHITECTURE='arm64'\r\n+    ;;\r\n+  *)\r\n+    die \"unsupported CPU architecture: $(uname -m)\"\r\n+    ;;\r\n+esac\r\n+\r\n+case \"$VERSION\" in\r\n+  latest) ;;\r\n+  v[0-9]*|[0-9]*)\r\n+    VERSION=${VERSION#v}\r\n+    printf '%s\\n' \"$VERSION\" | grep -Eq '^[0-9]+\\.[0-9]+\\.[0-9]+([.+-][0-9A-Za-z.-]+)?$' || die \"invalid version: $VERSION\"\r\n+    ;;\r\n+  *)\r\n+    die \"invalid version: $VERSION\"\r\n+    ;;\r\n+esac\r\n+\r\n+case \"$INSTALL_DIR\" in\r\n+  /*) ;;\r\n+  *) die '--install-dir must be an absolute path' ;;\r\n+esac\r\n+\r\n+case \"$INSTALL_DIR\" in\r\n+  /|\"$HOME\") die '--install-dir cannot be a filesystem root or home directory' ;;\r\n+esac\r\n+\r\n+case \"$INSTALL_DIR\" in\r\n+  *'\"'*) die '--install-dir contains characters that cannot be written to the install manifest' ;;\r\n+esac\r\n+\r\n+if [ -z \"$BASE_URL\" ]; then\r\n+  if [ \"$VERSION\" = 'latest' ]; then\r\n+    BASE_URL=\"$REPOSITORY/latest/download\"\r\n+  else\r\n+    BASE_URL=\"$REPOSITORY/download/v$VERSION\"\r\n+  fi\r\n+fi\r\n+\r\n+case \"$BASE_URL\" in\r\n+  https://*) ;;\r\n+  http://localhost/*|http://localhost|http://127.0.0.1/*|http://127.0.0.1|http://\\[::1\\]/*|http://\\[::1\\])\r\n+    [ \"$ALLOW_HTTP\" = '1' ] || die 'HTTP is allowed only with --allow-http for local testing'\r\n+    ;;\r\n+  *)\r\n+    die 'base URL must use HTTPS'\r\n+    ;;\r\n+esac\r\n+\r\n+case \"$BASE_URL\" in\r\n+  *'?'*|*'#'*) die 'base URL must not contain a query string or fragment' ;;\r\n+esac\r\n+\r\n+command -v curl >/dev/null 2>&1 || die 'curl is required'\r\n+\r\n+if command -v sha256sum >/dev/null 2>&1; then\r\n+  hash_file() { sha256sum \"$1\" | awk '{print $1}'; }\r\n+elif command -v shasum >/dev/null 2>&1; then\r\n+  hash_file() { shasum -a 256 \"$1\" | awk '{print $1}'; }\r\n+else\r\n+  die 'sha256sum or shasum is required'\r\n+fi\r\n+\r\n+download() {\r\n+  curl --fail --silent --show-error --location --proto '=https,http' --tlsv1.2 \"$1\" --output \"$2\"\r\n+}\r\n+\r\n+json_string() {\r\n+  key=$1\r\n+  file=$2\r\n+  sed -n \"s/^[[:space:]]*\\\"$key\\\"[[:space:]]*:[[:space:]]*\\\"\\([^\\\"]*\\)\\\".*/\\1/p\" \"$file\" | head -n 1\r\n+}\r\n+\r\n+temp_dir=$(mktemp -d \"${TMPDIR:-/tmp}/punch-install.XXXXXX\") || die 'could not create a temporary directory'\r\n+staged_path=''\r\n+staged_manifest=''\r\n+cleanup() {\r\n+  rm -rf \"$temp_dir\"\r\n+  [ -z \"$staged_path\" ] || rm -f \"$staged_path\"\r\n+  [ -z \"$staged_manifest\" ] || rm -f \"$staged_manifest\"\r\n+}\r\n+trap cleanup EXIT HUP INT TERM\r\n+umask 077\r\n+\r\n+manifest_file=\"$temp_dir/release-manifest.json\"\r\n+manifest_url=\"${BASE_URL%/}/release-manifest.json\"\r\n+printf 'Reading release manifest from %s...\\n' \"$manifest_url\"\r\n+download \"$manifest_url\" \"$manifest_file\"\r\n+\r\n+manifest_version=$(json_string version \"$manifest_file\")\r\n+manifest_name=$(json_string name \"$manifest_file\")\r\n+[ \"$manifest_name\" = 'punch' ] || die 'release manifest is not a Punch manifest'\r\n+[ -n \"$manifest_version\" ] || die 'release manifest does not contain a version'\r\n+printf '%s\\n' \"$manifest_version\" | grep -Eq '^[0-9]+\\.[0-9]+\\.[0-9]+([.+-][0-9A-Za-z.-]+)?$' || die \"release manifest contains an invalid version: $manifest_version\"\r\n+\r\n+if [ \"$VERSION\" != 'latest' ] && [ \"$manifest_version\" != \"$VERSION\" ]; then\r\n+  die \"requested version $VERSION does not match release manifest version $manifest_version\"\r\n+fi\r\n+\r\n+artifact_file=\"punch-v${manifest_version}-${PLATFORM}-${ARCHITECTURE}\"\r\n+case \"$PLATFORM\" in\r\n+  windows) artifact_file=\"${artifact_file}.exe\" ;;\r\n+esac\r\n+\r\n+grep -Fq \"\\\"file\\\": \\\"$artifact_file\\\"\" \"$manifest_file\" || die \"release does not contain $artifact_file\"\r\n+\r\n+artifact_path=\"$temp_dir/$artifact_file\"\r\n+checksum_path=\"$temp_dir/$artifact_file.sha256\"\r\n+download \"${BASE_URL%/}/$artifact_file\" \"$artifact_path\"\r\n+download \"${BASE_URL%/}/$artifact_file.sha256\" \"$checksum_path\"\r\n+\r\n+checksum_line=$(sed -n '1p' \"$checksum_path\")\r\n+expected_checksum=$(printf '%s\\n' \"$checksum_line\" | awk '{print $1}')\r\n+checksum_name=$(printf '%s\\n' \"$checksum_line\" | awk '{print $2}' | sed 's/^\\*//')\r\n+printf '%s\\n' \"$expected_checksum\" | grep -Eq '^[0-9a-fA-F]{64}$' || die \"checksum file for $artifact_file is malformed\"\r\n+[ \"$checksum_name\" = \"$artifact_file\" ] || die \"checksum file names $checksum_name instead of $artifact_file\"\r\n+\r\n+actual_checksum=$(hash_file \"$artifact_path\")\r\n+[ \"$actual_checksum\" = \"$expected_checksum\" ] || die \"SHA-256 verification failed for $artifact_file\"\r\n+\r\n+mkdir -p \"$INSTALL_DIR\"\r\n+target_path=\"$INSTALL_DIR/punch\"\r\n+staged_path=\"$INSTALL_DIR/.punch.$$.tmp\"\r\n+manifest_target=\"$INSTALL_DIR/punch-install.json\"\r\n+staged_manifest=\"$INSTALL_DIR/.punch-install.$$.tmp\"\r\n+\r\n+cp \"$artifact_path\" \"$staged_path\"\r\n+chmod 755 \"$staged_path\"\r\n+mv -f \"$staged_path\" \"$target_path\"\r\n+\r\n+printf '{\\n  \"name\": \"punch\",\\n  \"version\": \"%s\",\\n  \"platform\": \"%s\",\\n  \"architecture\": \"%s\",\\n  \"installDirectory\": \"%s\",\\n  \"executable\": \"%s\",\\n  \"installerVersion\": \"%s\"\\n}\\n' \\\r\n+  \"$manifest_version\" \"$PLATFORM\" \"$ARCHITECTURE\" \"$INSTALL_DIR\" \"$target_path\" \"$INSTALLER_VERSION\" \\\r\n+  > \"$staged_manifest\"\r\n+mv -f \"$staged_manifest\" \"$manifest_target\"\r\n+\r\n+printf 'Installed punch %s to %s\\n' \"$manifest_version\" \"$target_path\"\r\n+case \":${PATH:-}:\" in\r\n+  *\":$INSTALL_DIR:\"*) ;;\r\n+  *)\r\n+    printf 'Add this directory to PATH in your shell profile:\\n  export PATH=\"%s:$PATH\"\\n' \"$INSTALL_DIR\"\r\n+    ;;\r\n+esac\r\n",
+              "additions": 222,
+              "deletions": 222,
+              "status": "modified"
+            }
+          ]
+        },
+        "id": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "i have a new github username: https://github.com/squidllee\n\nupdate the project in whatever way is needed",
+          "id": "prt_02ca44b1b001YJ5czrLp529o9w",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca44ad30012WtJ6eIRIWOT1s"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 19725,
+          "input": 19707,
+          "output": 18,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455376285,
+          "completed": 1787455411543
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca48b9d001TlnC8f9XPRyuHz",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "b544031917fd98847924a23969a06856b27c7195",
+          "type": "step-start",
+          "id": "prt_02ca4f6020011RzBldZQq5Iu1V",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca48b9d001TlnC8f9XPRyuHz"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_11fe0a3d621045dc9ab37f95",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "github\\.com/[\\w-]+"
+            },
+            "output": "Found 3 matches\nC:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\install.ps1:\n  Line 25:   $repository = 'https://github.com/exodus712/punch-in/releases'\n\n\nC:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md:\n  Line 66: git clone https://github.com/exodus712/punch-in.git\r\n\n\nC:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\install.sh:\n  Line 4: REPOSITORY='https://github.com/exodus712/punch-in/releases'\n",
+            "metadata": {
+              "matches": 3,
+              "truncated": false
+            },
+            "title": "github\\.com/[\\w-]+",
+            "time": {
+              "start": 1787455403734,
+              "end": 1787455403902
+            }
+          },
+          "id": "prt_02ca4f631001JRjTG8GZ3NdioD",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca48b9d001TlnC8f9XPRyuHz"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "b544031917fd98847924a23969a06856b27c7195",
+          "type": "step-finish",
+          "tokens": {
+            "total": 19725,
+            "input": 19707,
+            "output": 18,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca50422001EVDtike61cC9NL",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca48b9d001TlnC8f9XPRyuHz"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 19903,
+          "input": 241,
+          "output": 14,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 19648
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455411632,
+          "completed": 1787455435218
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca515af001Jxa2gtaLR8qpCS",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "b544031917fd98847924a23969a06856b27c7195",
+          "type": "step-start",
+          "id": "prt_02ca54062001Lljh5RMBxwL0D6",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca515af001Jxa2gtaLR8qpCS"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_7186200657c44b2f85b2af45",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git remote -v"
+            },
+            "output": "origin\thttps://github.com/Squidys-Tools/punch-in.git (fetch)\norigin\thttps://github.com/Squidys-Tools/punch-in.git (push)\n",
+            "metadata": {
+              "output": "origin\thttps://github.com/Squidys-Tools/punch-in.git (fetch)\norigin\thttps://github.com/Squidys-Tools/punch-in.git (push)\n",
+              "exit": 0,
+              "truncated": false
+            },
+            "title": "git remote -v",
+            "time": {
+              "start": 1787455431487,
+              "end": 1787455431813
+            }
+          },
+          "id": "prt_02ca54086001LNSL2jmcJmK5yN",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca515af001Jxa2gtaLR8qpCS"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "b544031917fd98847924a23969a06856b27c7195",
+          "type": "step-finish",
+          "tokens": {
+            "total": 19903,
+            "input": 241,
+            "output": 14,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 19648
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca56e82001g4x5En0YPwIa7L",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca515af001Jxa2gtaLR8qpCS"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20013,
+          "input": 105,
+          "output": 54,
+          "reasoning": 14,
+          "cache": {
+            "write": 0,
+            "read": 19840
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455435240,
+          "completed": 1787455455303
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca571e80013g5KBYOYgxkDvg",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "b544031917fd98847924a23969a06856b27c7195",
+          "type": "step-start",
+          "id": "prt_02ca5998a0016IGXRyoHPqXCW6",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca571e80013g5KBYOYgxkDvg"
+        },
+        {
+          "type": "reasoning",
+          "text": "Remote is Squidys-Tools, but user says new username is squidllee. Update remote and file references to https://github.com/squidllee/punch-in?",
+          "time": {
+            "start": 1787455445414,
+            "end": 1787455446235
+          },
+          "id": "prt_02ca599a5001FjOj3WvO2yLwEv",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca571e80013g5KBYOYgxkDvg"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_08141067be544018b0bb34f3",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git remote set-url origin https://github.com/squidllee/punch-in.git && git remote -v"
+            },
+            "output": "origin\thttps://github.com/squidllee/punch-in.git (fetch)\norigin\thttps://github.com/squidllee/punch-in.git (push)\n",
+            "metadata": {
+              "output": "origin\thttps://github.com/squidllee/punch-in.git (fetch)\norigin\thttps://github.com/squidllee/punch-in.git (push)\n",
+              "exit": 0,
+              "truncated": false
+            },
+            "title": "git remote set-url origin https://github.com/squidllee/punch-in.git && git remote -v",
+            "time": {
+              "start": 1787455452051,
+              "end": 1787455452379
+            }
+          },
+          "id": "prt_02ca59cf90019rQYvMlW2j0uzr",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca571e80013g5KBYOYgxkDvg"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "b544031917fd98847924a23969a06856b27c7195",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20013,
+            "input": 105,
+            "output": 54,
+            "reasoning": 14,
+            "cache": {
+              "write": 0,
+              "read": 19840
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca5bb840014U0rfpxpYEuuHz",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca571e80013g5KBYOYgxkDvg"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20113,
+          "input": 147,
+          "output": 62,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 19904
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455455364,
+          "completed": 1787455480695
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca5c084001LpkAhkRS6bZ4hl",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "b544031917fd98847924a23969a06856b27c7195",
+          "type": "step-start",
+          "id": "prt_02ca5e65a001Rx8qsXN5UEvRM0",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca5c084001LpkAhkRS6bZ4hl"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_b5caa656e1d14965984141b3",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "(Get-Content install.ps1) -replace 'exodus712','squidllee' | Set-Content install.ps1; (Get-Content install.sh) -replace 'exodus712','squidllee' | Set-Content install.sh"
+            },
+            "output": "(no output)",
+            "metadata": {
+              "output": "(no output)",
+              "exit": 0,
+              "truncated": false
+            },
+            "title": "(Get-Content install.ps1) -replace 'exodus712','squidllee' | Set-Content install.ps1; (Get-Content install.sh) -replace 'exodus712','squidllee' | Set-Content install.sh",
+            "time": {
+              "start": 1787455466574,
+              "end": 1787455473704
+            }
+          },
+          "id": "prt_02ca5e66b0018HXJuKz5Fh2gNm",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca5c084001LpkAhkRS6bZ4hl"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "57a2ee33c3a03ceb9a54f37a60d35f7d1393632e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20113,
+            "input": 147,
+            "output": 62,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 19904
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca6183d001M5C10pbtBKElP2",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca5c084001LpkAhkRS6bZ4hl"
+        },
+        {
+          "type": "patch",
+          "hash": "b544031917fd98847924a23969a06856b27c7195",
+          "files": [
+            "C:/Users/5928008713/Important/projects/expirements/test-1/punch/install.ps1",
+            "C:/Users/5928008713/Important/projects/expirements/test-1/punch/install.sh"
+          ],
+          "id": "prt_02ca62331001t7n6BU6qJnHBKq",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca5c084001LpkAhkRS6bZ4hl"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20174,
+          "input": 88,
+          "output": 54,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 20032
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455480778,
+          "completed": 1787455497795
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca623c800158rmVJAyDvjK2p",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "57a2ee33c3a03ceb9a54f37a60d35f7d1393632e",
+          "type": "step-start",
+          "id": "prt_02ca654f9001XcDp0F6XOc2r83",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca623c800158rmVJAyDvjK2p"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_9e3d32ce3b024ee4b4a3e8f8",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md",
+              "limit": 10,
+              "offset": 60
+            },
+            "output": "<path>C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md</path>\n<type>file</type>\n<content>\n60: \n61: ### Build from source\n62: \n63: Contributors and users who prefer source builds should keep using Bun:\n64: \n65: ```sh\n66: git clone https://github.com/exodus712/punch-in.git\n67: cd punch\n68: bun install\n69: bun run start\n\n(Showing lines 60-69 of 136. Use offset=70 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\n### Build from source\n\nContributors and users who prefer source builds should keep using Bun:\n\n```sh\ngit clone https://github.com/exodus712/punch-in.git\ncd punch\nbun install\nbun run start",
+              "truncated": true,
+              "loaded": [],
+              "display": {
+                "type": "file",
+                "path": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md",
+                "text": "\n### Build from source\n\nContributors and users who prefer source builds should keep using Bun:\n\n```sh\ngit clone https://github.com/exodus712/punch-in.git\ncd punch\nbun install\nbun run start",
+                "lineStart": 60,
+                "lineEnd": 69,
+                "totalLines": 136,
+                "truncated": true
+              }
+            },
+            "title": "docs\\distribution-and-uninstallation.md",
+            "time": {
+              "start": 1787455494058,
+              "end": 1787455494775
+            }
+          },
+          "id": "prt_02ca65517001PO7vt1Jfb5S5H0",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca623c800158rmVJAyDvjK2p"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "57a2ee33c3a03ceb9a54f37a60d35f7d1393632e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20174,
+            "input": 88,
+            "output": 54,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 20032
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca660f7001jCOfXAKPRtcDBV",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca623c800158rmVJAyDvjK2p"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20391,
+          "input": 217,
+          "output": 78,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 20096
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455497825,
+          "completed": 1787455508772
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca66661001mBAJqq54J73QEI",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "57a2ee33c3a03ceb9a54f37a60d35f7d1393632e",
+          "type": "step-start",
+          "id": "prt_02ca685700016qXAUqG1LgYVvN",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca66661001mBAJqq54J73QEI"
+        },
+        {
+          "type": "tool",
+          "tool": "edit",
+          "callID": "call_fa8c36b086f44156add24682",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md",
+              "newString": "https://github.com/squidllee/punch-in.git",
+              "oldString": "https://github.com/exodus712/punch-in.git"
+            },
+            "output": "Edit applied successfully.",
+            "metadata": {
+              "diagnostics": {},
+              "diff": "Index: C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md\n===================================================================\n--- C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md\n+++ C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md\n@@ -62,9 +62,9 @@\n \n Contributors and users who prefer source builds should keep using Bun:\n \n ```sh\n-git clone https://github.com/exodus712/punch-in.git\n+git clone https://github.com/squidllee/punch-in.git\n cd punch\n bun install\n bun run start\n ```\n",
+              "filediff": {
+                "file": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md",
+                "patch": "Index: C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md\n===================================================================\n--- C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md\n+++ C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\docs\\distribution-and-uninstallation.md\n@@ -62,9 +62,9 @@\n \n Contributors and users who prefer source builds should keep using Bun:\n \n ```sh\n-git clone https://github.com/exodus712/punch-in.git\n+git clone https://github.com/squidllee/punch-in.git\n cd punch\n bun install\n bun run start\n ```\n",
+                "additions": 1,
+                "deletions": 1
+              },
+              "truncated": false
+            },
+            "title": "docs\\distribution-and-uninstallation.md",
+            "time": {
+              "start": 1787455506887,
+              "end": 1787455506910
+            }
+          },
+          "id": "prt_02ca68578001zrMpGSuMiHaIbI",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca66661001mBAJqq54J73QEI"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "e37bcbed881d8b9e5d561a8176645519d698c14d",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20391,
+            "input": 217,
+            "output": 78,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 20096
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca68eff001ponKZP5n91rPeT",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca66661001mBAJqq54J73QEI"
+        },
+        {
+          "type": "patch",
+          "hash": "57a2ee33c3a03ceb9a54f37a60d35f7d1393632e",
+          "files": [
+            "C:/Users/5928008713/Important/projects/expirements/test-1/punch/docs/distribution-and-uninstallation.md"
+          ],
+          "id": "prt_02ca6911c0014d4F6tosQylI4J",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca66661001mBAJqq54J73QEI"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20413,
+          "input": 111,
+          "output": 14,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 20288
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455508785,
+          "completed": 1787455518049
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca69131001BUd7Vz4YaFuJXT",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "e37bcbed881d8b9e5d561a8176645519d698c14d",
+          "type": "step-start",
+          "id": "prt_02ca6a934001LjL4evECwA9AYW",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca69131001BUd7Vz4YaFuJXT"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_a032fbbc8206483e8c7a8a66",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "exodus712"
+            },
+            "output": "Found 3 matches\nC:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License:\n  Line 3: Copyright (c) 2026 exodus712\r\n\n\nC:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\README.md:\n  Line 32: irm https://raw.githubusercontent.com/exodus712/punch-in/main/install.ps1 | iex\n\n  Line 40: curl -fsSL https://raw.githubusercontent.com/exodus712/punch-in/main/install.sh | sh\n",
+            "metadata": {
+              "matches": 3,
+              "truncated": false
+            },
+            "title": "exodus712",
+            "time": {
+              "start": 1787455515119,
+              "end": 1787455515676
+            }
+          },
+          "id": "prt_02ca6a9480015LSKGgroZyjjlK",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca69131001BUd7Vz4YaFuJXT"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "e37bcbed881d8b9e5d561a8176645519d698c14d",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20413,
+            "input": 111,
+            "output": 14,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 20288
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca6b13b001u4ZObWEPF5ceTb",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca69131001BUd7Vz4YaFuJXT"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20583,
+          "input": 197,
+          "output": 34,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 20352
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455518066,
+          "completed": 1787455534501
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca6b572001xEyRgQH5Ilwebg",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "e37bcbed881d8b9e5d561a8176645519d698c14d",
+          "type": "step-start",
+          "id": "prt_02ca6d9ae001xV5VdzZTp5xgys",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca6b572001xEyRgQH5Ilwebg"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_d3053f0224a64c7590bb281a",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "(Get-Content README.md) -replace 'exodus712','squidllee' | Set-Content README.md"
+            },
+            "output": "(no output)",
+            "metadata": {
+              "output": "(no output)",
+              "exit": 0,
+              "truncated": false
+            },
+            "title": "(Get-Content README.md) -replace 'exodus712','squidllee' | Set-Content README.md",
+            "time": {
+              "start": 1787455527760,
+              "end": 1787455530722
+            }
+          },
+          "id": "prt_02ca6d9b4001KWj4wNuMNuOjmc",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca6b572001xEyRgQH5Ilwebg"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "965c70b92cc13e5f28405e77e1f09ca785e848c1",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20583,
+            "input": 197,
+            "output": 34,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 20352
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca6ed06001Xl68XBPl7shK5o",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca6b572001xEyRgQH5Ilwebg"
+        },
+        {
+          "type": "patch",
+          "hash": "e37bcbed881d8b9e5d561a8176645519d698c14d",
+          "files": [
+            "C:/Users/5928008713/Important/projects/expirements/test-1/punch/README.md"
+          ],
+          "id": "prt_02ca6f58f001g2hvjiPcwniYgK",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca6b572001xEyRgQH5Ilwebg"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20633,
+          "input": 46,
+          "output": 43,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 20544
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455534551,
+          "completed": 1787455557914
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca6f5d7001x3cf1c1nUsh118",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "965c70b92cc13e5f28405e77e1f09ca785e848c1",
+          "type": "step-start",
+          "id": "prt_02ca70cd4001A0kx5fV31bIOiQ",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca6f5d7001x3cf1c1nUsh118"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_2ca4be885d074c3fba958f99",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License",
+              "limit": 5
+            },
+            "output": "<path>C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License</path>\n<type>file</type>\n<content>\n1: MIT License\n2: \n3: Copyright (c) 2026 exodus712\n4: \n5: Permission is hereby granted, free of charge, to any person obtaining a copy\n\n(Showing lines 1-5 of 21. Use offset=6 to continue.)\n</content>",
+            "metadata": {
+              "preview": "MIT License\n\nCopyright (c) 2026 exodus712\n\nPermission is hereby granted, free of charge, to any person obtaining a copy",
+              "truncated": true,
+              "loaded": [],
+              "display": {
+                "type": "file",
+                "path": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License",
+                "text": "MIT License\n\nCopyright (c) 2026 exodus712\n\nPermission is hereby granted, free of charge, to any person obtaining a copy",
+                "lineStart": 1,
+                "lineEnd": 5,
+                "totalLines": 21,
+                "truncated": true
+              }
+            },
+            "title": "MIT License",
+            "time": {
+              "start": 1787455540862,
+              "end": 1787455543187
+            }
+          },
+          "id": "prt_02ca70ce8001IG0yYmtn1YiLOK",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca6f5d7001x3cf1c1nUsh118"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "965c70b92cc13e5f28405e77e1f09ca785e848c1",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20633,
+            "input": 46,
+            "output": 43,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 20544
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca735ab0012IWcqMx4Oq5toP",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca6f5d7001x3cf1c1nUsh118"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20812,
+          "input": 198,
+          "output": 70,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 20544
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455557930,
+          "completed": 1787455575282
+        },
+        "finish": "tool-calls",
+        "id": "msg_02ca7512a001boSYeFqozq9CVl",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "965c70b92cc13e5f28405e77e1f09ca785e848c1",
+          "type": "step-start",
+          "id": "prt_02ca77f0f001UmqBofUEPdckN6",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca7512a001boSYeFqozq9CVl"
+        },
+        {
+          "type": "tool",
+          "tool": "edit",
+          "callID": "call_8806124950d5475cbdd6ddc5",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License",
+              "newString": "Copyright (c) 2026 squidllee",
+              "oldString": "Copyright (c) 2026 exodus712"
+            },
+            "output": "Edit applied successfully.",
+            "metadata": {
+              "diagnostics": {},
+              "diff": "Index: C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License\n===================================================================\n--- C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License\n+++ C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License\n@@ -1,7 +1,7 @@\n MIT License\n \n-Copyright (c) 2026 exodus712\n+Copyright (c) 2026 squidllee\n \n Permission is hereby granted, free of charge, to any person obtaining a copy\n of this software and associated documentation files (the \"Software\"), to deal\n in the Software without restriction, including without limitation the rights\n",
+              "filediff": {
+                "file": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License",
+                "patch": "Index: C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License\n===================================================================\n--- C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License\n+++ C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch\\MIT License\n@@ -1,7 +1,7 @@\n MIT License\n \n-Copyright (c) 2026 exodus712\n+Copyright (c) 2026 squidllee\n \n Permission is hereby granted, free of charge, to any person obtaining a copy\n of this software and associated documentation files (the \"Software\"), to deal\n in the Software without restriction, including without limitation the rights\n",
+                "additions": 1,
+                "deletions": 1
+              },
+              "truncated": false
+            },
+            "title": "MIT License",
+            "time": {
+              "start": 1787455570637,
+              "end": 1787455570655
+            }
+          },
+          "id": "prt_02ca77f1f00144Gkai2mXg95rR",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca7512a001boSYeFqozq9CVl"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "6f2a53140af000f81529451dd649da4265800a05",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20812,
+            "input": 198,
+            "output": 70,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 20544
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca78f1d0017JnGHb7seP5sMM",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca7512a001boSYeFqozq9CVl"
+        },
+        {
+          "type": "patch",
+          "hash": "965c70b92cc13e5f28405e77e1f09ca785e848c1",
+          "files": [
+            "C:/Users/5928008713/Important/projects/expirements/test-1/punch/MIT License"
+          ],
+          "id": "prt_02ca794e40010YFXm8etohikTt",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca7512a001boSYeFqozq9CVl"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_02ca44ad30012WtJ6eIRIWOT1s",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "variant": "low",
+        "path": {
+          "cwd": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch",
+          "root": "C:\\Users\\5928008713\\Important\\projects\\expirements\\test-1\\punch"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 20919,
+          "input": 84,
+          "output": 99,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 20736
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787455575321,
+          "completed": 1787455588949
+        },
+        "finish": "stop",
+        "id": "msg_02ca795190012T4yaxKQ0Xjace",
+        "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV"
+      },
+      "parts": [
+        {
+          "snapshot": "6f2a53140af000f81529451dd649da4265800a05",
+          "type": "step-start",
+          "id": "prt_02ca7b4c60010XRMxh8A4S8H0X",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca795190012T4yaxKQ0Xjace"
+        },
+        {
+          "type": "text",
+          "text": "Updated all references from `exodus712` to `squidllee`:\n\n- git remote → `https://github.com/squidllee/punch-in.git`\n- `README.md`, `install.ps1`, `install.sh`, `docs/distribution-and-uninstallation.md`, and `MIT License`\n\nNote: the remote URL change only takes effect if the repo itself was renamed/transferred on GitHub — if the repo still lives under the old account, pushes will fail.",
+          "time": {
+            "start": 1787455583508,
+            "end": 1787455585430
+          },
+          "id": "prt_02ca7b514001vvI9kCPc884j86",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca795190012T4yaxKQ0Xjace"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "6f2a53140af000f81529451dd649da4265800a05",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20919,
+            "input": 84,
+            "output": 99,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 20736
+            }
+          },
+          "cost": 0,
+          "id": "prt_02ca7c36a00141axt7GJu8FpQ5",
+          "sessionID": "ses_fd35bb9abffexN32hDV4AKYaQV",
+          "messageID": "msg_02ca795190012T4yaxKQ0Xjace"
+        }
+      ]
+    }
+  ]
+}
