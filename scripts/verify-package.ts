@@ -27,8 +27,12 @@ function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEn
 }
 
 const projectDir = path.resolve(import.meta.dirname, '..');
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const npmCommand = process.platform === 'win32' ? process.env.ComSpec ?? 'cmd.exe' : 'npm';
 const bunCommand = process.platform === 'win32' ? 'bun.exe' : 'bun';
+
+function npmArguments(args: string[]): string[] {
+  return process.platform === 'win32' ? ['/d', '/s', '/c', 'npm', ...args] : args;
+}
 const packDir = mkdtempSync(path.join(os.tmpdir(), 'punch-pack-'));
 const installDir = mkdtempSync(path.join(os.tmpdir(), 'punch-install-'));
 
@@ -45,7 +49,7 @@ try {
   run(bunCommand, ['run', 'build'], projectDir, process.env);
   const packOutput = run(
     npmCommand,
-    ['pack', '--ignore-scripts', '--json', '--pack-destination', packDir],
+    npmArguments(['pack', '--ignore-scripts', '--json', '--pack-destination', packDir]),
     projectDir,
     process.env,
   );
@@ -62,7 +66,7 @@ try {
 
   run(
     npmCommand,
-    ['install', '--no-save', '--ignore-scripts', archivePath],
+    npmArguments(['install', '--no-save', '--ignore-scripts', archivePath]),
     installDir,
     process.env,
   );
@@ -73,7 +77,7 @@ try {
   };
   const versionOutput = run(
     npmCommand,
-    ['exec', '--prefix', installDir, '--', 'punch', '--version'],
+    npmArguments(['exec', '--prefix', installDir, '--', 'punch', '--version']),
     installDir,
     cliEnvironment,
   );
@@ -83,7 +87,7 @@ try {
 
   const statusOutput = run(
     npmCommand,
-    ['exec', '--prefix', installDir, '--', 'punch', 'status'],
+    npmArguments(['exec', '--prefix', installDir, '--', 'punch', 'status']),
     installDir,
     cliEnvironment,
   );
