@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { dataFile } from './store.js';
-import { FONTS, type TimerFont } from './fonts.js';
+import { FONTS, TIMER_COLORS, type TimerColor, type TimerFont } from './fonts.js';
 import { RING_CONCEPTS, RING_STYLES, type RingConcept, type RingStyle } from './ring.js';
 
 export type ClockFormat = '12h' | '24h';
@@ -10,6 +10,7 @@ export interface Preferences {
   setupComplete: boolean;
   clockFormat: ClockFormat;
   font: TimerFont;
+  color: TimerColor;
   ringStyle: RingStyle;
   ringConcept: RingConcept;
   reuseLastProject: boolean;
@@ -23,7 +24,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   setupComplete: false,
   clockFormat: '12h',
   font: 'blocky',
-  ringStyle: 'smooth',
+  color: 'gray',
+  ringStyle: 'wide',
   ringConcept: 'day-dial',
   reuseLastProject: false,
 };
@@ -65,6 +67,7 @@ function normalize(value: Record<string, unknown>): Preferences {
     setupComplete: typeof value.setupComplete === 'boolean' ? value.setupComplete : DEFAULT_PREFERENCES.setupComplete,
     clockFormat: value.clockFormat === '24h' ? '24h' : DEFAULT_PREFERENCES.clockFormat,
     font: isIn(value.font, FONTS) ? value.font : DEFAULT_PREFERENCES.font,
+    color: isIn(value.color, TIMER_COLORS) ? value.color : DEFAULT_PREFERENCES.color,
     ringStyle: isIn(value.ringStyle, RING_STYLES) ? value.ringStyle : DEFAULT_PREFERENCES.ringStyle,
     ringConcept: isIn(value.ringConcept, RING_CONCEPTS) ? value.ringConcept : DEFAULT_PREFERENCES.ringConcept,
     reuseLastProject: typeof value.reuseLastProject === 'boolean' ? value.reuseLastProject : DEFAULT_PREFERENCES.reuseLastProject,

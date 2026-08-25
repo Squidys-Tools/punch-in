@@ -10,7 +10,7 @@ import {
   type Preferences,
   loadPreferences,
 } from './preferences.js';
-import { FONTS, gradientColor, timerFontHeight, timerRows, type TimerFont } from './fonts.js';
+import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, gradientColor, timerFontHeight, timerRows, type TimerColor, type TimerFont } from './fonts.js';
 import { RING_CONCEPTS, RING_STYLES, ringData, ringGrid, ringHeight, type Cell, type RingConcept, type RingStyle } from './ring.js';
 
 export type InitialScreen = 'timer' | 'settings';
@@ -83,15 +83,16 @@ function GradientText({ row }: { row: string }) {
   );
 }
 
-function TimerGlyphs({ active, font }: { active: Active | null; font: TimerFont }) {
+function TimerGlyphs({ active, font, color }: { active: Active | null; font: TimerFont; color: TimerColor }) {
   const rows = timerRows(active ? elapsedSeconds(active) : 0, font);
+  const glyphColor = font === 'blocky' && color !== 'gray' ? TIMER_COLOR_HEX[color] : active ? 'green' : 'gray';
   return (
     <>
       {rows.map((row, index) =>
         font === 'gradient' ? (
           <GradientText key={index} row={row} />
         ) : (
-          <Text key={index} color={active ? 'green' : 'gray'} bold>{row}</Text>
+          <Text key={index} color={glyphColor} bold>{row}</Text>
         ),
       )}
     </>
@@ -115,7 +116,7 @@ function TimerBody({ store, preferences, compact }: { store: Store; preferences:
   const data = ringData(store, preferences.ringConcept);
   return (
     <Box flexDirection="column" alignItems="center">
-      <TimerGlyphs active={active} font={preferences.font} />
+      <TimerGlyphs active={active} font={preferences.font} color={preferences.color} />
       {active ? (
         <>
           <Text color="magenta" bold>● TRACKING</Text>
@@ -143,7 +144,7 @@ function Header({ preferences }: { preferences: Preferences }) {
   return (
     <Box paddingX={1}>
       <Text>
-        <Text color="cyan" bold>PUNCH</Text>
+        <Text color="cyan" bold>PUNCH IN</Text>
         <Text>{`  ·  ${formatClock(new Date(), preferences.clockFormat)}`}</Text>
       </Text>
     </Box>
@@ -209,13 +210,14 @@ function SetupScreen({ preferences, step, focus, status }: { preferences: Prefer
   );
 }
 
-type SettingKey = 'clockFormat' | 'font' | 'ringStyle' | 'ringConcept' | 'reuseLastProject';
-const SETTING_KEYS: SettingKey[] = ['clockFormat', 'font', 'ringStyle', 'ringConcept', 'reuseLastProject'];
+type SettingKey = 'clockFormat' | 'font' | 'color' | 'ringStyle' | 'ringConcept' | 'reuseLastProject';
+const SETTING_KEYS: SettingKey[] = ['clockFormat', 'font', 'color', 'ringStyle', 'ringConcept', 'reuseLastProject'];
 
 function settingLabel(key: SettingKey): string {
   switch (key) {
     case 'clockFormat': return 'clock format';
     case 'font': return 'timer font';
+    case 'color': return 'timer color';
     case 'ringStyle': return 'ring style';
     case 'ringConcept': return 'ring concept';
     case 'reuseLastProject': return 'reuse last project';
@@ -467,6 +469,7 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     setDraftPreferences((current) => {
       if (key === 'clockFormat') return { ...current, clockFormat: current.clockFormat === '12h' ? '24h' : '12h' };
       if (key === 'font') return { ...current, font: cycle(FONTS, current.font) };
+      if (key === 'color') return { ...current, color: cycle(TIMER_COLORS, current.color) };
       if (key === 'ringStyle') return { ...current, ringStyle: cycle(RING_STYLES, current.ringStyle) };
       if (key === 'ringConcept') return { ...current, ringConcept: cycle(RING_CONCEPTS, current.ringConcept) };
       return { ...current, reuseLastProject: !current.reuseLastProject };
@@ -481,8 +484,8 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
         else saveDraft({ ...draftPreferences, setupComplete: true });
       } else if (key.escape && setupStep > 0) {
         setSetupStep((value) => value - 1);
-      } else if (setupStep === 1 && (key.leftArrow || key.rightArrow)) {
-        setVisualFocus((value) => key.rightArrow ? ((value + 1) % 3) as VisualFocus : ((value + 2) % 3) as VisualFocus);
+      } else if (setupStep === 1 && (key.upArrow || key.downArrow)) {
+        setVisualFocus((value) => key.downArrow ? ((value + 1) % 3) as VisualFocus : ((value + 2) % 3) as VisualFocus);
       }
       return;
     }

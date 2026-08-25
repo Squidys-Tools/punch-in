@@ -19,6 +19,21 @@ export type TimerFont = 'blocky' | 'digital' | 'pixel' | 'gradient';
 
 export const FONTS: TimerFont[] = ['blocky', 'digital', 'pixel', 'gradient'];
 
+// ---------- timer colors (pastels, flat fill — no gradient) ----------
+
+export type TimerColor = 'gray' | 'pink' | 'peach' | 'lemon' | 'mint' | 'sky' | 'lilac';
+
+export const TIMER_COLORS: TimerColor[] = ['gray', 'pink', 'peach', 'lemon', 'mint', 'sky', 'lilac'];
+
+export const TIMER_COLOR_HEX: Record<Exclude<TimerColor, 'gray'>, string> = {
+  pink: '#FFB3C6',
+  peach: '#FFD1A9',
+  lemon: '#FDFD96',
+  mint: '#B5EAD7',
+  sky: '#A7C7E7',
+  lilac: '#C3B1E1',
+};
+
 function hmsParts(secs: number): string[] {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);

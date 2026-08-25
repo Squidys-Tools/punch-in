@@ -111,9 +111,9 @@ out += section('RING STYLES (same 56% progress)');
 for (const style of RING_STYLES) {
   if (style === 'none') continue;
   const desc = {
-    smooth: 'thick braille band, classic look',
-    thin: 'hairline braille band',
-    pixel: 'chunky block ring',
+    wide: 'thick braille band, classic look',
+    narrow: 'hairline braille band',
+    blocks: 'chunky block ring',
   }[style]!;
   const data = ringData(store, 'day-dial', NOW);
   out += show(style, desc, [...ringRows(ringGrid(style, data)), gray(`  ${data.label}`)]);
@@ -129,7 +129,7 @@ for (const concept of RING_CONCEPTS) {
     'day-left': 'how much of the day remains — zero config',
   }[concept]!;
   const data = ringData(store, concept, NOW);
-  out += show(`concept: ${concept}`, desc, [...ringRows(ringGrid('smooth', data)), gray(`  ${data.label}`)]);
+  out += show(`concept: ${concept}`, desc, [...ringRows(ringGrid('wide', data)), gray(`  ${data.label}`)]);
 }
 
 out += '\n';

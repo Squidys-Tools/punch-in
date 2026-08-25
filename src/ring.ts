@@ -1,9 +1,9 @@
 // ---------- progress ring ----------
 //
 // Pure rendering of the progress ring. Styles:
-//   smooth - thick braille band (the classic look)
-//   thin   - hairline braille band
-//   pixel  - chunky block ring
+//   wide   - thick braille band (the classic look)
+//   narrow - hairline braille band
+//   blocks - chunky block ring
 //
 // To customize a ring look, tweak the parameters in ringGrid() (radius,
 // innerRatio). Terminal chars are roughly twice as tall as wide, so rings
@@ -16,10 +16,10 @@ import {
   type Store,
 } from './store.js';
 
-export type RingStyle = 'none' | 'smooth' | 'thin' | 'pixel';
+export type RingStyle = 'none' | 'wide' | 'narrow' | 'blocks';
 export type RingConcept = 'day-dial' | 'day-left';
 
-export const RING_STYLES: RingStyle[] = ['none', 'smooth', 'thin', 'pixel'];
+export const RING_STYLES: RingStyle[] = ['none', 'wide', 'narrow', 'blocks'];
 export const RING_CONCEPTS: RingConcept[] = ['day-dial', 'day-left'];
 
 export interface Cell {
@@ -203,7 +203,7 @@ export function ringData(store: Store, concept: RingConcept, now: Date = new Dat
 export function ringGrid(style: RingStyle, data: RingData): Cell[][] {
   if (style === 'none') return [];
   const arcs = [{ start: 0, end: data.frac, cat: 0 }];
-  if (style === 'pixel') return overlayCenter(blockRing(10.5, 5.5, 0.62, arcs), data.center, 3);
-  const innerRatio = style === 'thin' ? 0.75 : 0.55;
+  if (style === 'blocks') return overlayCenter(blockRing(10.5, 5.5, 0.62, arcs), data.center, 3);
+  const innerRatio = style === 'narrow' ? 0.75 : 0.55;
   return overlayCenter(brailleFromPixels(ringPixelGrid(10.5, innerRatio, arcs)), data.center, 2);
 }
