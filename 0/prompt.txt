@@ -1,0 +1,381 @@
+You write concise git commit messages.
+Return a JSON object with keys: subject, body.
+Rules:
+- subject must be imperative, <= 72 chars, and no trailing period
+- body can be empty string or short bullet points
+- capture the primary user-visible or developer-visible change
+
+Additional instructions:
+Follow the repository's established commit message style when examples are available.
+
+Recent commit subjects from this repository:
+just changing my name no biggie
+just changing my name no biggie
+fix(scripts): handle Windows npm invocation in verify-package
+enabled entire on repo
+chore: bump version to 0.1.2
+fix(uninstall): remove empty Windows install directories
+chore: bump version to 0.1.1
+fix: make Windows uninstall complete reliably
+ci: harden release workflow and document tag publishing
+feat: add standalone installers and uninstall command
+feat(release): add standalone release builds (#6)
+Add CI and package distribution flow
+docs: address README review comments
+Add project README
+fix: guard quick preference saves
+fix: preserve preference load failures
+fix: isolate menu status and enlarge pixel timer
+fix: polish settings ring and activity layout
+fix: address Greptile review findings
+feat: polish preferences and responsive tui behavior
+
+Branch: main
+
+Staged files:
+M	package.json
+M	scripts/preview.ts
+M	src/fonts.ts
+M	src/preferences.ts
+M	src/ring.ts
+M	src/views.tsx
+M	tests/compact.test.ts
+M	tests/ring.test.ts
+
+Staged patch:
+diff --git a/package.json b/package.json
+index 08a7904..4b6b98a 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "punch",
+   "version": "0.1.2",
+-  "packageManager": "bun@1.3.14",
++  "packageManager": "bun@1.4.0",
+   "description": "A simple CLI time tracker",
+   "type": "module",
+   "bin": {
+@@ -13,11 +13,12 @@
+   "scripts": {
+     "start": "bun run src/main.ts",
+     "dev": "bun --watch src/main.ts",
+-    "build": "bun build src/main.ts --target=node --format=esm --packages=external --outfile=dist/main.js",
++    "build": "bun build src/main.ts --target=node --format=esm --packages=external --outfile=dist/main.js --metafile-md=./dist/metafile.md",
+     "build:release": "bun run scripts/build-release.ts",
+     "prepack": "bun run build",
+     "verify:package": "bun run scripts/verify-package.ts",
+-    "test": "bun test",
++    "test": "bun test --parallel",
++    "check": "bun run --parallel test typecheck",
+     "typecheck": "tsc --noEmit",
+     "preview": "bun run scripts/preview.ts"
+   },
+diff --git a/scripts/preview.ts b/scripts/preview.ts
+index ed9570d..2021a5b 100644
+--- a/scripts/preview.ts
++++ b/scripts/preview.ts
+@@ -111,9 +111,9 @@ out += section('RING STYLES (same 56% progress)');
+ for (const style of RING_STYLES) {
+   if (style === 'none') continue;
+   const desc = {
+-    smooth: 'thick braille band, classic look',
+-    thin: 'hairline braille band',
+-    pixel: 'chunky block ring',
++    wide: 'thick braille band, classic look',
++    narrow: 'hairline braille band',
++    blocks: 'chunky block ring',
+   }[style]!;
+   const data = ringData(store, 'day-dial', NOW);
+   out += show(style, desc, [...ringRows(ringGrid(style, data)), gray(`  ${data.label}`)]);
+@@ -129,7 +129,7 @@ for (const concept of RING_CONCEPTS) {
+     'day-left': 'how much of the day remains — zero config',
+   }[concept]!;
+   const data = ringData(store, concept, NOW);
+-  out += show(`concept: ${concept}`, desc, [...ringRows(ringGrid('smooth', data)), gray(`  ${data.label}`)]);
++  out += show(`concept: ${concept}`, desc, [...ringRows(ringGrid('wide', data)), gray(`  ${data.label}`)]);
+ }
+ 
+ out += '\n';
+diff --git a/src/fonts.ts b/src/fonts.ts
+index 121dc7c..fbf3223 100644
+--- a/src/fonts.ts
++++ b/src/fonts.ts
+@@ -19,6 +19,21 @@ export type TimerFont = 'blocky' | 'digital' | 'pixel' | 'gradient';
+ 
+ export const FONTS: TimerFont[] = ['blocky', 'digital', 'pixel', 'gradient'];
+ 
++// ---------- timer colors (pastels, flat fill — no gradient) ----------
++
++export type TimerColor = 'gray' | 'pink' | 'peach' | 'lemon' | 'mint' | 'sky' | 'lilac';
++
++export const TIMER_COLORS: TimerColor[] = ['gray', 'pink', 'peach', 'lemon', 'mint', 'sky', 'lilac'];
++
++export const TIMER_COLOR_HEX: Record<Exclude<TimerColor, 'gray'>, string> = {
++  pink: '#FFB3C6',
++  peach: '#FFD1A9',
++  lemon: '#FDFD96',
++  mint: '#B5EAD7',
++  sky: '#A7C7E7',
++  lilac: '#C3B1E1',
++};
++
+ function hmsParts(secs: number): string[] {
+   const h = Math.floor(secs / 3600);
+   const m = Math.floor((secs % 3600) / 60);
+diff --git a/src/preferences.ts b/src/preferences.ts
+index a445c80..03c258c 100644
+--- a/src/preferences.ts
++++ b/src/preferences.ts
+@@ -1,7 +1,7 @@
+ import fs from 'node:fs';
+ import path from 'node:path';
+ import { dataFile } from './store.js';
+-import { FONTS, type TimerFont } from './fonts.js';
++import { FONTS, TIMER_COLORS, type TimerColor, type TimerFont } from './fonts.js';
+ import { RING_CONCEPTS, RING_STYLES, type RingConcept, type RingStyle } from './ring.js';
+ 
+ export type ClockFormat = '12h' | '24h';
+@@ -10,6 +10,7 @@ export interface Preferences {
+   setupComplete: boolean;
+   clockFormat: ClockFormat;
+   font: TimerFont;
++  color: TimerColor;
+   ringStyle: RingStyle;
+   ringConcept: RingConcept;
+   reuseLastProject: boolean;
+@@ -23,7 +24,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
+   setupComplete: false,
+   clockFormat: '12h',
+   font: 'blocky',
+-  ringStyle: 'smooth',
++  color: 'gray',
++  ringStyle: 'wide',
+   ringConcept: 'day-dial',
+   reuseLastProject: false,
+ };
+@@ -65,6 +67,7 @@ function normalize(value: Record<string, unknown>): Preferences {
+     setupComplete: typeof value.setupComplete === 'boolean' ? value.setupComplete : DEFAULT_PREFERENCES.setupComplete,
+     clockFormat: value.clockFormat === '24h' ? '24h' : DEFAULT_PREFERENCES.clockFormat,
+     font: isIn(value.font, FONTS) ? value.font : DEFAULT_PREFERENCES.font,
++    color: isIn(value.color, TIMER_COLORS) ? value.color : DEFAULT_PREFERENCES.color,
+     ringStyle: isIn(value.ringStyle, RING_STYLES) ? value.ringStyle : DEFAULT_PREFERENCES.ringStyle,
+     ringConcept: isIn(value.ringConcept, RING_CONCEPTS) ? value.ringConcept : DEFAULT_PREFERENCES.ringConcept,
+     reuseLastProject: typeof value.reuseLastProject === 'boolean' ? value.reuseLastProject : DEFAULT_PREFERENCES.reuseLastProject,
+diff --git a/src/ring.ts b/src/ring.ts
+index c355799..0b92763 100644
+--- a/src/ring.ts
++++ b/src/ring.ts
+@@ -1,9 +1,9 @@
+ // ---------- progress ring ----------
+ //
+ // Pure rendering of the progress ring. Styles:
+-//   smooth - thick braille band (the classic look)
+-//   thin   - hairline braille band
+-//   pixel  - chunky block ring
++//   wide   - thick braille band (the classic look)
++//   narrow - hairline braille band
++//   blocks - chunky block ring
+ //
+ // To customize a ring look, tweak the parameters in ringGrid() (radius,
+ // innerRatio). Terminal chars are roughly twice as tall as wide, so rings
+@@ -16,10 +16,10 @@ import {
+   type Store,
+ } from './store.js';
+ 
+-export type RingStyle = 'none' | 'smooth' | 'thin' | 'pixel';
++export type RingStyle = 'none' | 'wide' | 'narrow' | 'blocks';
+ export type RingConcept = 'day-dial' | 'day-left';
+ 
+-export const RING_STYLES: RingStyle[] = ['none', 'smooth', 'thin', 'pixel'];
++export const RING_STYLES: RingStyle[] = ['none', 'wide', 'narrow', 'blocks'];
+ export const RING_CONCEPTS: RingConcept[] = ['day-dial', 'day-left'];
+ 
+ export interface Cell {
+@@ -203,7 +203,7 @@ export function ringData(store: Store, concept: RingConcept, now: Date = new Dat
+ export function ringGrid(style: RingStyle, data: RingData): Cell[][] {
+   if (style === 'none') return [];
+   const arcs = [{ start: 0, end: data.frac, cat: 0 }];
+-  if (style === 'pixel') return overlayCenter(blockRing(10.5, 5.5, 0.62, arcs), data.center, 3);
+-  const innerRatio = style === 'thin' ? 0.75 : 0.55;
++  if (style === 'blocks') return overlayCenter(blockRing(10.5, 5.5, 0.62, arcs), data.center, 3);
++  const innerRatio = style === 'narrow' ? 0.75 : 0.55;
+   return overlayCenter(brailleFromPixels(ringPixelGrid(10.5, innerRatio, arcs)), data.center, 2);
+ }
+diff --git a/src/views.tsx b/src/views.tsx
+index 7ad0d72..115102c 100644
+--- a/src/views.tsx
++++ b/src/views.tsx
+@@ -10,7 +10,7 @@ import {
+   type Preferences,
+   loadPreferences,
+ } from './preferences.js';
+-import { FONTS, gradientColor, timerFontHeight, timerRows, type TimerFont } from './fonts.js';
++import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, gradientColor, timerFontHeight, timerRows, type TimerColor, type TimerFont } from './fonts.js';
+ import { RING_CONCEPTS, RING_STYLES, ringData, ringGrid, ringHeight, type Cell, type RingConcept, type RingStyle } from './ring.js';
+ 
+ export type InitialScreen = 'timer' | 'settings';
+@@ -83,15 +83,16 @@ function GradientText({ row }: { row: string }) {
+   );
+ }
+ 
+-function TimerGlyphs({ active, font }: { active: Active | null; font: TimerFont }) {
++function TimerGlyphs({ active, font, color }: { active: Active | null; font: TimerFont; color: TimerColor }) {
+   const rows = timerRows(active ? elapsedSeconds(active) : 0, font);
++  const glyphColor = font === 'blocky' && color !== 'gray' ? TIMER_COLOR_HEX[color] : active ? 'green' : 'gray';
+   return (
+     <>
+       {rows.map((row, index) =>
+         font === 'gradient' ? (
+           <GradientText key={index} row={row} />
+         ) : (
+-          <Text key={index} color={active ? 'green' : 'gray'} bold>{row}</Text>
++          <Text key={index} color={glyphColor} bold>{row}</Text>
+         ),
+       )}
+     </>
+@@ -115,7 +116,7 @@ function TimerBody({ store, preferences, compact }: { store: Store; preferences:
+   const data = ringData(store, preferences.ringConcept);
+   return (
+     <Box flexDirection="column" alignItems="center">
+-      <TimerGlyphs active={active} font={preferences.font} />
++      <TimerGlyphs active={active} font={preferences.font} color={preferences.color} />
+       {active ? (
+         <>
+           <Text color="magenta" bold>● TRACKING</Text>
+@@ -143,7 +144,7 @@ function Header({ preferences }: { preferences: Preferences }) {
+   return (
+     <Box paddingX={1}>
+       <Text>
+-        <Text color="cyan" bold>PUNCH</Text>
++        <Text color="cyan" bold>PUNCH IN</Text>
+         <Text>{`  ·  ${formatClock(new Date(), preferences.clockFormat)}`}</Text>
+       </Text>
+     </Box>
+@@ -209,13 +210,14 @@ function SetupScreen({ preferences, step, focus, status }: { preferences: Prefer
+   );
+ }
+ 
+-type SettingKey = 'clockFormat' | 'font' | 'ringStyle' | 'ringConcept' | 'reuseLastProject';
+-const SETTING_KEYS: SettingKey[] = ['clockFormat', 'font', 'ringStyle', 'ringConcept', 'reuseLastProject'];
++type SettingKey = 'clockFormat' | 'font' | 'color' | 'ringStyle' | 'ringConcept' | 'reuseLastProject';
++const SETTING_KEYS: SettingKey[] = ['clockFormat', 'font', 'color', 'ringStyle', 'ringConcept', 'reuseLastProject'];
+ 
+ function settingLabel(key: SettingKey): string {
+   switch (key) {
+     case 'clockFormat': return 'clock format';
+     case 'font': return 'timer font';
++    case 'color': return 'timer color';
+     case 'ringStyle': return 'ring style';
+     case 'ringConcept': return 'ring concept';
+     case 'reuseLastProject': return 'reuse last project';
+@@ -467,6 +469,7 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
+     setDraftPreferences((current) => {
+       if (key === 'clockFormat') return { ...current, clockFormat: current.clockFormat === '12h' ? '24h' : '12h' };
+       if (key === 'font') return { ...current, font: cycle(FONTS, current.font) };
++      if (key === 'color') return { ...current, color: cycle(TIMER_COLORS, current.color) };
+       if (key === 'ringStyle') return { ...current, ringStyle: cycle(RING_STYLES, current.ringStyle) };
+       if (key === 'ringConcept') return { ...current, ringConcept: cycle(RING_CONCEPTS, current.ringConcept) };
+       return { ...current, reuseLastProject: !current.reuseLastProject };
+@@ -481,8 +484,8 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
+         else saveDraft({ ...draftPreferences, setupComplete: true });
+       } else if (key.escape && setupStep > 0) {
+         setSetupStep((value) => value - 1);
+-      } else if (setupStep === 1 && (key.leftArrow || key.rightArrow)) {
+-        setVisualFocus((value) => key.rightArrow ? ((value + 1) % 3) as VisualFocus : ((value + 2) % 3) as VisualFocus);
++      } else if (setupStep === 1 && (key.upArrow || key.downArrow)) {
++        setVisualFocus((value) => key.downArrow ? ((value + 1) % 3) as VisualFocus : ((value + 2) % 3) as VisualFocus);
+       }
+       return;
+     }
+diff --git a/tests/compact.test.ts b/tests/compact.test.ts
+index 85be6fc..8c37405 100644
+--- a/tests/compact.test.ts
++++ b/tests/compact.test.ts
+@@ -7,8 +7,8 @@ describe('compactLevel', () => {
+ 
+   test('full layout in a normal terminal', () => {
+     // blocky+smooth: body = rows-4; fullH = 5+6+4 = 15 -> need rows >= 19
+-    expect(level(30, 'blocky', 'smooth')).toBe(0);
+-    expect(level(19, 'blocky', 'smooth')).toBe(0);
++    expect(level(30, 'blocky', 'wide')).toBe(0);
++    expect(level(19, 'blocky', 'wide')).toBe(0);
+     // digital+pixel: fullH = 3+6+4 = 13 -> need rows >= 17
+     expect(level(30, 'digital', 'pixel')).toBe(0);
+     expect(level(17, 'digital', 'pixel')).toBe(0);
+@@ -16,23 +16,23 @@ describe('compactLevel', () => {
+ 
+   test('ring drops first as the terminal squishes', () => {
+     // blocky+smooth: noRingH = 7, noStartedH = 6, timerH = 5
+-    expect(level(18, 'blocky', 'smooth')).toBe(1); // body 14: no full, yes noRing
+-    expect(level(11, 'blocky', 'smooth')).toBe(1); // body 7: no full, yes noRing
+-    expect(level(10, 'blocky', 'smooth')).toBe(2); // body 6: yes noStarted
+-    expect(level(9, 'blocky', 'smooth')).toBe(3); // body 5: yes timerH
+-    expect(level(8, 'blocky', 'smooth')).toBe(4); // body 4: single line
++    expect(level(18, 'blocky', 'wide')).toBe(1); // body 14: no full, yes noRing
++    expect(level(11, 'blocky', 'wide')).toBe(1); // body 7: no full, yes noRing
++    expect(level(10, 'blocky', 'wide')).toBe(2); // body 6: yes noStarted
++    expect(level(9, 'blocky', 'wide')).toBe(3); // body 5: yes timerH
++    expect(level(8, 'blocky', 'wide')).toBe(4); // body 4: single line
+   });
+ 
+   test('pixel font needs less room', () => {
+     // pixel+smooth: fullH = 2+6+4 = 12, noRingH = 4, noStartedH = 3, timerH = 2
+-    expect(level(16, 'pixel', 'smooth')).toBe(0); // body 12
+-    expect(level(15, 'pixel', 'smooth')).toBe(1); // body 11
+-    expect(level(12, 'pixel', 'smooth')).toBe(1); // body 8
+-    expect(level(9, 'pixel', 'smooth')).toBe(1); // body 5
+-    expect(level(8, 'pixel', 'smooth')).toBe(1); // body 4
+-    expect(level(7, 'pixel', 'smooth')).toBe(2); // body 3
+-    expect(level(6, 'pixel', 'smooth')).toBe(3); // body 2
+-    expect(level(5, 'pixel', 'smooth')).toBe(4); // body 1
++    expect(level(16, 'pixel', 'wide')).toBe(0); // body 12
++    expect(level(15, 'pixel', 'wide')).toBe(1); // body 11
++    expect(level(12, 'pixel', 'wide')).toBe(1); // body 8
++    expect(level(9, 'pixel', 'wide')).toBe(1); // body 5
++    expect(level(8, 'pixel', 'wide')).toBe(1); // body 4
++    expect(level(7, 'pixel', 'wide')).toBe(2); // body 3
++    expect(level(6, 'pixel', 'wide')).toBe(3); // body 2
++    expect(level(5, 'pixel', 'wide')).toBe(4); // body 1
+   });
+ 
+   test('no ring never overflows', () => {
+@@ -45,10 +45,10 @@ describe('compactLevel', () => {
+ 
+   test('wrapped header/footer reserve more rows', () => {
+     // blocky+smooth: fullH = 15, noRingH = 7, noStartedH = 6, timerH = 5
+-    expect(compactLevel(19, 'blocky', 'smooth')).toBe(0); // default: body 15 -> full
+-    expect(compactLevel(19, 'blocky', 'smooth', 6)).toBe(1); // wrapped: body 13 -> ring drops
+-    expect(compactLevel(19, 'blocky', 'smooth', 13)).toBe(2); // wrapped: body 6 -> started drops
+-    expect(compactLevel(19, 'blocky', 'smooth', 14)).toBe(3); // wrapped: body 5 -> glyphs only
+-    expect(compactLevel(10, 'blocky', 'smooth', 6)).toBe(4); // wrapped: body 4 -> single line
++    expect(compactLevel(19, 'blocky', 'wide')).toBe(0); // default: body 15 -> full
++    expect(compactLevel(19, 'blocky', 'wide', 6)).toBe(1); // wrapped: body 13 -> ring drops
++    expect(compactLevel(19, 'blocky', 'wide', 13)).toBe(2); // wrapped: body 6 -> started drops
++    expect(compactLevel(19, 'blocky', 'wide', 14)).toBe(3); // wrapped: body 5 -> glyphs only
++    expect(compactLevel(10, 'blocky', 'wide', 6)).toBe(4); // wrapped: body 4 -> single line
+   });
+ });
+diff --git a/tests/ring.test.ts b/tests/ring.test.ts
+index 2048602..0711a04 100644
+--- a/tests/ring.test.ts
++++ b/tests/ring.test.ts
+@@ -26,14 +26,14 @@ describe('progress rings', () => {
+   });
+ 
+   test('ring progress does not become full before the fraction reaches one', () => {
+-    const cells = ringGrid('smooth', { frac: 0.9, center: '90%', label: '' }).flat();
++    const cells = ringGrid('wide', { frac: 0.9, center: '90%', label: '' }).flat();
+     const perimeter = cells.filter((cell) => cell.cat === 0 || cell.cat === -1);
+     expect(perimeter.some((cell) => cell.cat === -1)).toBe(true);
+-    expect(ringGrid('smooth', { frac: 1, center: '100%', label: '' }).flat().some((cell) => cell.cat === -1)).toBe(false);
++    expect(ringGrid('wide', { frac: 1, center: '100%', label: '' }).flat().some((cell) => cell.cat === -1)).toBe(false);
+   });
+ 
+-  test('smooth ring has a curved outline instead of a rectangle', () => {
+-    const rows = ringGrid('smooth', { frac: 0.5, center: '50%', label: '' });
++  test('wide ring has a curved outline instead of a rectangle', () => {
++    const rows = ringGrid('wide', { frac: 0.5, center: '50%', label: '' });
+     const activeCells = (row: typeof rows[number]) => row.filter((cell) => cell.cat === 0 || cell.cat === -1).length;
+     expect(activeCells(rows[0])).toBeLessThan(activeCells(rows[Math.floor(rows.length / 2)]));
+   });

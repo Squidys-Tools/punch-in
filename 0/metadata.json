@@ -1,0 +1,75 @@
+{
+  "cli_version": "0.10.1",
+  "checkpoint_id": "01M0WMM7HCBDE2EE8EW3WEV9HV",
+  "session_id": "ses_fc6b644d9ffexAcAZ3e95IzU0r",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-25T14:19:16.0756904Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "package.json",
+    "scripts/preview.ts",
+    "src/fonts.ts",
+    "src/preferences.ts",
+    "src/ring.ts",
+    "src/views.tsx",
+    "tests/compact.test.ts",
+    "tests/ring.test.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "muse-spark-1.2-contributor-free",
+  "turn_id": "f50fbd9ce7ab",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 8795,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 175,
+    "api_call_count": 1
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-25T14:19:16.0342962Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 1198,
+    "human_removed": 1185,
+    "total_committed": 0,
+    "total_lines_changed": 2383,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1207,
+      "user_lines_removed": 1185,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "package.json": 43,
+        "scripts/preview.ts": 140,
+        "src/fonts.ts": 209,
+        "src/preferences.ts": 5,
+        "src/ring.ts": 209,
+        "src/views.tsx": 543,
+        "tests/compact.test.ts": 54,
+        "tests/ring.test.ts": 4
+      },
+      "user_removed_per_file": {
+        "package.json": 42,
+        "scripts/preview.ts": 140,
+        "src/fonts.ts": 194,
+        "src/preferences.ts": 2,
+        "src/ring.ts": 209,
+        "src/views.tsx": 540,
+        "tests/compact.test.ts": 54,
+        "tests/ring.test.ts": 4
+      }
+    }
+  ]
+}
