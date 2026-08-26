@@ -31,6 +31,7 @@ describe('preferences', () => {
       ...DEFAULT_PREFERENCES,
       setupComplete: true,
       clockFormat: '24h',
+      color: 'lilac',
       reuseLastProject: true,
     };
     expect(savePreferencesPath(file, value).ok).toBe(true);
@@ -47,7 +48,7 @@ describe('preferences', () => {
 
   test('unknown preference fields are normalized to defaults', () => {
     const file = path.join(dir, 'preferences.json');
-    writeFileSync(file, JSON.stringify({ setupComplete: true, clockFormat: 'weird' }), 'utf8');
+    writeFileSync(file, JSON.stringify({ setupComplete: true, clockFormat: 'weird', color: 'ultraviolet' }), 'utf8');
     const result = loadPreferencesPath(file);
     expect(result).toEqual({ ok: true, value: { ...DEFAULT_PREFERENCES, setupComplete: true } });
   });

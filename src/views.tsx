@@ -19,7 +19,7 @@ export type { RingConcept, RingStyle } from './ring.js';
 type Mode = 'normal' | 'input' | 'stop-confirm';
 type Screen = 'timer' | 'setup' | 'settings' | 'help' | 'activity';
 type ActivityTab = 'sessions' | 'analytics';
-type VisualFocus = 0 | 1 | 2;
+type VisualFocus = 0 | 1 | 2 | 3;
 
 interface StatusMsg {
   text: string;
@@ -85,7 +85,7 @@ function GradientText({ row }: { row: string }) {
 
 function TimerGlyphs({ active, font, color }: { active: Active | null; font: TimerFont; color: TimerColor }) {
   const rows = timerRows(active ? elapsedSeconds(active) : 0, font);
-  const glyphColor = font === 'blocky' && color !== 'gray' ? TIMER_COLOR_HEX[color] : active ? 'green' : 'gray';
+  const glyphColor = color !== 'gray' ? TIMER_COLOR_HEX[color] : active ? 'green' : 'gray';
   return (
     <>
       {rows.map((row, index) =>
@@ -180,7 +180,8 @@ function setupValue(preferences: Preferences, step: number, focus: VisualFocus):
   if (step === 0) return clockLabel(preferences.clockFormat);
   if (step === 2) return preferences.reuseLastProject ? 'on' : 'off';
   if (focus === 0) return preferences.font;
-  if (focus === 1) return preferences.ringStyle;
+  if (focus === 1) return preferences.color;
+  if (focus === 2) return preferences.ringStyle;
   return preferences.ringConcept;
 }
 
@@ -198,8 +199,9 @@ function SetupScreen({ preferences, step, focus, status }: { preferences: Prefer
         {step === 1 && (
           <>
             <Text color={focus === 0 ? 'yellow' : 'gray'}>{focus === 0 ? '›' : ' '} font: {preferences.font}</Text>
-            <Text color={focus === 1 ? 'yellow' : 'gray'}>{focus === 1 ? '›' : ' '} ring: {preferences.ringStyle}</Text>
-            <Text color={focus === 2 ? 'yellow' : 'gray'}>{focus === 2 ? '›' : ' '} concept: {preferences.ringConcept}</Text>
+            <Text color={focus === 1 ? 'yellow' : 'gray'}>{focus === 1 ? '›' : ' '} color: {preferences.color}</Text>
+            <Text color={focus === 2 ? 'yellow' : 'gray'}>{focus === 2 ? '›' : ' '} ring: {preferences.ringStyle}</Text>
+            <Text color={focus === 3 ? 'yellow' : 'gray'}>{focus === 3 ? '›' : ' '} concept: {preferences.ringConcept}</Text>
           </>
         )}
         {step === 2 && <Text><Text color="yellow">› </Text>reuse last project: <Text color="green" bold>{setupValue(preferences, step, focus)}</Text></Text>}
@@ -459,7 +461,8 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       if (setupStep === 0) return { ...current, clockFormat: current.clockFormat === '12h' ? '24h' : '12h' };
       if (setupStep === 2) return { ...current, reuseLastProject: !current.reuseLastProject };
       if (visualFocus === 0) return { ...current, font: cycle(FONTS, current.font) };
-      if (visualFocus === 1) return { ...current, ringStyle: cycle(RING_STYLES, current.ringStyle) };
+      if (visualFocus === 1) return { ...current, color: cycle(TIMER_COLORS, current.color) };
+      if (visualFocus === 2) return { ...current, ringStyle: cycle(RING_STYLES, current.ringStyle) };
       return { ...current, ringConcept: cycle(RING_CONCEPTS, current.ringConcept) };
     });
   };
@@ -485,7 +488,7 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       } else if (key.escape && setupStep > 0) {
         setSetupStep((value) => value - 1);
       } else if (setupStep === 1 && (key.upArrow || key.downArrow)) {
-        setVisualFocus((value) => key.downArrow ? ((value + 1) % 3) as VisualFocus : ((value + 2) % 3) as VisualFocus);
+        setVisualFocus((value) => key.downArrow ? ((value + 1) % 4) as VisualFocus : ((value + 3) % 4) as VisualFocus);
       }
       return;
     }

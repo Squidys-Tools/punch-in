@@ -182,6 +182,25 @@ describe('setup and settings', () => {
     expect(saved.clockFormat).toBe('24h');
   });
 
+  test('settings cycles and saves timer colors', async () => {
+    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
+    await flush();
+    instance.stdin.write('\x1b[B');
+    await flush();
+    instance.stdin.write('\x1b[B');
+    await flush();
+    expect(instance.lastFrame()).toContain('timer color: gray');
+    instance.stdin.write(' ');
+    await flush();
+    expect(instance.lastFrame()).toContain('timer color: pink');
+    instance.stdin.write('\r');
+    await flush();
+    const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
+    instance.unmount();
+
+    expect(saved.color).toBe('pink');
+  });
+
   test('Esc discards unsaved settings and returns to the timer', async () => {
     const instance = render(React.createElement(App, { initialScreen: 'settings' }));
     await flush();

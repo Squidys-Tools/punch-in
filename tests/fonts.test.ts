@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { FONTS, timerFontHeight, timerRows } from '../src/fonts.js';
+import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, timerFontHeight, timerRows } from '../src/fonts.js';
 
 describe('timer fonts', () => {
   test('each font reports the height of its rendered rows', () => {
@@ -21,5 +21,17 @@ describe('timer fonts', () => {
   test('pixel font is more compact than the digital font', () => {
     expect(timerFontHeight('pixel')).toBeLessThan(timerFontHeight('digital'));
     expect(timerRows(3661, 'pixel')[0].length).toBeLessThan(timerRows(3661, 'digital')[0].length);
+  });
+
+  test('exposes the complete pastel timer palette', () => {
+    expect(TIMER_COLORS).toEqual(['gray', 'pink', 'peach', 'lemon', 'mint', 'sky', 'lilac']);
+    expect(TIMER_COLOR_HEX).toEqual({
+      pink: '#FFB3C6',
+      peach: '#FFD1A9',
+      lemon: '#FDFD96',
+      mint: '#B5EAD7',
+      sky: '#A7C7E7',
+      lilac: '#C3B1E1',
+    });
   });
 });
