@@ -4,9 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   dataFile,
+  formatDateTimeInput,
   formatDuration,
   isSameDay,
   loadPath,
+  parseDateTimeInput,
   savePath,
   sessionsOn,
   startOfDay,
@@ -46,6 +48,22 @@ describe('formatDuration', () => {
 
   test('formats zero', () => {
     expect(formatDuration(0)).toBe('0s');
+  });
+});
+
+describe('editable date and time values', () => {
+  test('formats and parses local date-time input', () => {
+    const date = new Date(2026, 7, 14, 10, 30, 45);
+    const input = formatDateTimeInput(date);
+    expect(input).toBe('2026-08-14 10:30:45');
+    expect(parseDateTimeInput(input)?.getTime()).toBe(date.getTime());
+    expect(parseDateTimeInput('2026-08-14 10:30')?.getSeconds()).toBe(0);
+  });
+
+  test('rejects malformed and impossible date-time input', () => {
+    expect(parseDateTimeInput('tomorrow morning')).toBeNull();
+    expect(parseDateTimeInput('2026-02-30 10:30:00')).toBeNull();
+    expect(parseDateTimeInput('2026-08-14 25:00:00')).toBeNull();
   });
 });
 

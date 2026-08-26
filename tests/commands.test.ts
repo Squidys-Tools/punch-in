@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { start, status, stop } from '../src/commands.js';
-import { loadPath } from '../src/store.js';
+import { editSession, start, status, stop } from '../src/commands.js';
+import { loadPath, savePath, type Store } from '../src/store.js';
 
 let dir: string;
 let dataFile: string;
@@ -92,5 +92,46 @@ describe('stop', () => {
     const parsed = JSON.parse(raw);
     expect(parsed.history).toHaveLength(1);
     expect(parsed.history[0].project).toBe('api');
+  });
+});
+
+describe('editSession', () => {
+  test('updates the project and recalculates duration', () => {
+    const originalStart = new Date(2026, 7, 14, 9, 0, 0);
+    const originalEnd = new Date(2026, 7, 14, 10, 0, 0);
+    const initial: Store = {
+      active: null,
+      history: [{ project: 'old name', started_at: originalStart, ended_at: originalEnd, duration_secs: 3600 }],
+      goal_secs: 8 * 3600,
+    };
+    savePath(dataFile, initial);
+
+    const result = editSession(
+      0,
+      '  client work  ',
+      new Date(2026, 7, 14, 11, 15, 0),
+      new Date(2026, 7, 14, 12, 45, 30),
+    );
+
+    expect(result).toEqual({ ok: true, message: "updated 'client work'" });
+    const edited = readStore().history[0];
+    expect(edited.project).toBe('client work');
+    expect(edited.started_at.getHours()).toBe(11);
+    expect(edited.ended_at.getHours()).toBe(12);
+    expect(edited.duration_secs).toBe(5430);
+  });
+
+  test('rejects blank projects, reversed times, and missing entries', () => {
+    const startAt = new Date(2026, 7, 14, 9, 0, 0);
+    const endAt = new Date(2026, 7, 14, 10, 0, 0);
+    savePath(dataFile, {
+      active: null,
+      history: [{ project: 'work', started_at: startAt, ended_at: endAt, duration_secs: 3600 }],
+      goal_secs: 8 * 3600,
+    });
+
+    expect(editSession(0, ' ', startAt, endAt).message).toBe('project name cannot be blank');
+    expect(editSession(0, 'work', endAt, startAt).message).toBe('end time must be on or after start time');
+    expect(editSession(4, 'work', startAt, endAt).message).toBe('time entry not found');
   });
 });

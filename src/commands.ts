@@ -54,6 +54,34 @@ export function stop(): CmdResult {
   return ok(`stopped '${active.project}' after ${formatDuration(durationSecs)}`);
 }
 
+export function editSession(index: number, project: string, startedAt: Date, endedAt: Date): CmdResult {
+  const name = project.trim();
+  if (!name) return fail('project name cannot be blank');
+  if (!Number.isFinite(startedAt.getTime()) || !Number.isFinite(endedAt.getTime())) {
+    return fail('start and end times must be valid');
+  }
+  if (endedAt.getTime() < startedAt.getTime()) {
+    return fail('end time must be on or after start time');
+  }
+
+  const store = load();
+  if (!store.ok) return fail(store.error);
+  const data = store.value;
+  const current = data.history[index];
+  if (!current) return fail('time entry not found');
+
+  data.history[index] = {
+    ...current,
+    project: name,
+    started_at: new Date(startedAt),
+    ended_at: new Date(endedAt),
+    duration_secs: Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000),
+  };
+  const saveErr = save(data);
+  if (!saveErr.ok) return fail(saveErr.error);
+  return ok(`updated '${name}'`);
+}
+
 export function status(): CmdResult {
   const store = load();
   if (!store.ok) return fail(store.error);

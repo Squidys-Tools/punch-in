@@ -110,7 +110,7 @@ c       Cycle ring concepts
 q       Quit
 ```
 
-In Activity, `Tab` switches between Sessions and Analytics, the left and right arrow keys change the day, and `Esc` returns to the timer.
+In Activity, the up and down arrow keys select a completed session, `Enter` edits it, `Tab` switches between Sessions and Analytics, the left and right arrow keys change the day, and `Esc` returns to the timer. The editor accepts project names and local timestamps in `YYYY-MM-DD HH:MM[:SS]` format. Duration is recalculated from the edited start and end times.
 
 In Settings and first-run setup, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back. Settings include the clock format, timer font, ring style, ring concept, and whether a new session can reuse the last project.
 

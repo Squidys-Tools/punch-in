@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Text, useAnimation, useApp, useInput, useWindowSize } from 'ink';
-import { start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
-import { elapsedSeconds, formatDuration, isSameDay, load, type Active, type Store } from './store.js';
+import { editSession as cmdEditSession, start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
+import { elapsedSeconds, formatDateTimeInput, formatDuration, isSameDay, load, parseDateTimeInput, type Active, type Session, type Store } from './store.js';
 import { activityForDay, nextDay, previousDay, type ActivitySummary } from './activity.js';
 import {
   DEFAULT_PREFERENCES,
@@ -17,9 +17,10 @@ export type InitialScreen = 'timer' | 'settings';
 export type { TimerFont } from './fonts.js';
 export type { RingConcept, RingStyle } from './ring.js';
 type Mode = 'normal' | 'input' | 'stop-confirm';
-type Screen = 'timer' | 'setup' | 'settings' | 'help' | 'activity';
+type Screen = 'timer' | 'setup' | 'settings' | 'help' | 'activity' | 'edit-session';
 type ActivityTab = 'sessions' | 'analytics';
 type VisualFocus = 0 | 1 | 2 | 3;
+type EditStep = 0 | 1 | 2;
 
 interface StatusMsg {
   text: string;
@@ -256,11 +257,11 @@ function dateHeading(date: Date): string {
   return `${DAYS[date.getDay()]} ${MONTHS[date.getMonth()]} ${String(date.getDate()).padStart(2, ' ')}, ${date.getFullYear()}`;
 }
 
-function ActivitySessions({ summary, preferences, active }: { summary: ActivitySummary; preferences: Preferences; active: Active | null }) {
+function ActivitySessions({ summary, preferences, active, selectedIndex }: { summary: ActivitySummary; preferences: Preferences; active: Active | null; selectedIndex: number }) {
   const projectWidth = Math.max(12, ...summary.sessions.map((session) => session.project.length), active?.project.length ?? 0);
   const durationWidth = Math.max(8, ...summary.sessions.map((session) => formatDuration(session.duration_secs).length), active ? formatDuration(elapsedSeconds(active)).length : 0);
-  const row = (project: string, start: string, end: string, duration: string) => (
-    <Text>{'  '}{project.padEnd(projectWidth, ' ')}  {`${start} → ${end}`.padEnd(21, ' ')}{duration.padStart(durationWidth, ' ')}</Text>
+  const row = (project: string, start: string, end: string, duration: string, selected = false) => (
+    <Text><Text color={selected ? 'yellow' : undefined}>{selected ? '› ' : '  '}</Text>{project.padEnd(projectWidth, ' ')}  {`${start} → ${end}`.padEnd(21, ' ')}{duration.padStart(durationWidth, ' ')}</Text>
   );
   return (
     <Box flexDirection="column" alignItems="flex-start">
@@ -268,7 +269,7 @@ function ActivitySessions({ summary, preferences, active }: { summary: ActivityS
       <Text>{' '}</Text>
       {summary.sessions.map((session, index) => (
         <React.Fragment key={`${session.started_at.toISOString()}-${index}`}>
-          {row(session.project, formatTime(session.started_at, preferences.clockFormat), formatTime(session.ended_at, preferences.clockFormat), formatDuration(session.duration_secs))}
+          {row(session.project, formatTime(session.started_at, preferences.clockFormat), formatTime(session.ended_at, preferences.clockFormat), formatDuration(session.duration_secs), index === selectedIndex)}
         </React.Fragment>
       ))}
       {active && <Text color="magenta" bold>{row(active.project, formatTime(active.started_at, preferences.clockFormat), 'ACTIVE', formatDuration(elapsedSeconds(active)))}</Text>}
@@ -305,7 +306,7 @@ function CenteredScreen({ children }: { children: React.ReactNode }) {
   return <Box height={rows} width="100%" justifyContent="center" alignItems="center">{children}</Box>;
 }
 
-function ActivityScreen({ store, preferences, date, tab }: { store: Store; preferences: Preferences; date: Date; tab: ActivityTab }) {
+function ActivityScreen({ store, preferences, date, tab, selectedIndex }: { store: Store; preferences: Preferences; date: Date; tab: ActivityTab; selectedIndex: number }) {
   const summary = activityForDay(store.history, date);
   return (
     <CenteredScreen>
@@ -313,9 +314,37 @@ function ActivityScreen({ store, preferences, date, tab }: { store: Store; prefe
         <Text color="cyan" bold>ACTIVITY · {tab === 'sessions' ? 'SESSIONS' : 'ANALYTICS'}</Text>
         <Text color="magenta" bold>{dateHeading(date)}</Text>
         <Text>{' '}</Text>
-        {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active && isSameDay(store.active.started_at, date) ? store.active : null} /> : <ActivityAnalytics summary={summary} />}
+        {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active && isSameDay(store.active.started_at, date) ? store.active : null} selectedIndex={selectedIndex} /> : <ActivityAnalytics summary={summary} />}
         <Text>{' '}</Text>
-        <Text color="gray">Tab {tab === 'sessions' ? 'analytics' : 'sessions'} · ←→ day · Esc back</Text>
+        <Text color="gray">{tab === 'sessions' && summary.sessions.length > 0 ? '↑↓ select · Enter edit · ' : ''}Tab {tab === 'sessions' ? 'analytics' : 'sessions'} · ←→ day · Esc back</Text>
+      </Box>
+    </CenteredScreen>
+  );
+}
+
+interface EditValues {
+  project: string;
+  startedAt: Date;
+  endedAt: Date;
+}
+
+function EditSessionScreen({ values, step, input, status }: { values: EditValues; step: EditStep; input: string; status: StatusMsg | null }) {
+  const duration = Math.max(0, Math.floor((values.endedAt.getTime() - values.startedAt.getTime()) / 1000));
+  const value = (field: EditStep, text: string) => <Text color={step === field ? 'white' : undefined}>{step === field ? `${text}▌` : text}</Text>;
+  return (
+    <CenteredScreen>
+      <Box flexDirection="column" alignItems="center">
+        <Text color="cyan" bold>EDIT TIME ENTRY</Text>
+        <Text color="gray">change the project or time · step {step + 1} of 3</Text>
+        {status && <Text color="red">{status.text}</Text>}
+        <Text>{' '}</Text>
+        <Text><Text color={step === 0 ? 'yellow' : 'gray'}>{step === 0 ? '›' : ' '} project: </Text>{value(0, step === 0 ? input : values.project)}</Text>
+        <Text><Text color={step === 1 ? 'yellow' : 'gray'}>{step === 1 ? '›' : ' '} start:   </Text>{value(1, step === 1 ? input : formatDateTimeInput(values.startedAt))}</Text>
+        <Text><Text color={step === 2 ? 'yellow' : 'gray'}>{step === 2 ? '›' : ' '} end:     </Text>{value(2, step === 2 ? input : formatDateTimeInput(values.endedAt))}</Text>
+        <Text color="gray">          duration: {formatDuration(duration)}</Text>
+        <Text>{' '}</Text>
+        <Text color="gray">Enter next · Ctrl+A clear · Esc cancel</Text>
+        {step > 0 && <Text color="gray">Use YYYY-MM-DD HH:MM[:SS]</Text>}
       </Box>
     </CenteredScreen>
   );
@@ -334,6 +363,7 @@ function HelpScreen() {
         <Text><Text color="yellow">?</Text> open this help</Text>
         <Text><Text color="yellow">q</Text> quit</Text>
         <Text>{' '}</Text>
+        <Text color="gray">In Activity, select a session and press Enter to edit</Text>
         <Text color="gray">Esc close</Text>
       </Box>
     </CenteredScreen>
@@ -395,6 +425,11 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
   const [draftPreferences, setDraftPreferences] = React.useState(preferences);
   const [activityDate, setActivityDate] = React.useState(() => new Date());
   const [activityTab, setActivityTab] = React.useState<ActivityTab>('sessions');
+  const [activitySelection, setActivitySelection] = React.useState(0);
+  const [editingSession, setEditingSession] = React.useState<Session | null>(null);
+  const [editValues, setEditValues] = React.useState<EditValues | null>(null);
+  const [editStep, setEditStep] = React.useState<EditStep>(0);
+  const [editInput, setEditInput] = React.useState('');
 
   useAnimation({ interval: 500 });
 
@@ -456,6 +491,60 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     setDraftPreferences(next);
   };
 
+  const beginEditSession = (session: Session) => {
+    const values = { project: session.project, startedAt: new Date(session.started_at), endedAt: new Date(session.ended_at) };
+    setEditingSession(session);
+    setEditValues(values);
+    setEditStep(0);
+    setEditInput(values.project);
+    setStatus(null);
+    setScreen('edit-session');
+  };
+
+  const commitEditStep = () => {
+    if (!editValues) return;
+    if (editStep === 0) {
+      const project = editInput.trim();
+      if (!project) {
+        setStatus({ text: 'Project name cannot be blank', isError: true });
+        return;
+      }
+      const next = { ...editValues, project };
+      setEditValues(next);
+      setEditStep(1);
+      setEditInput(formatDateTimeInput(next.startedAt));
+      setStatus(null);
+      return;
+    }
+
+    const parsed = parseDateTimeInput(editInput);
+    if (!parsed) {
+      setStatus({ text: 'Use YYYY-MM-DD HH:MM[:SS]', isError: true });
+      return;
+    }
+    if (editStep === 1) {
+      const next = { ...editValues, startedAt: parsed };
+      setEditValues(next);
+      setEditStep(2);
+      setEditInput(formatDateTimeInput(next.endedAt));
+      setStatus(null);
+      return;
+    }
+
+    const index = editingSession ? store.history.indexOf(editingSession) : -1;
+    const result = cmdEditSession(index, editValues.project, editValues.startedAt, parsed);
+    if (!result.ok) {
+      setStatus({ text: result.message, isError: true });
+      return;
+    }
+    setStatus({ text: result.message, isError: false });
+    setEditingSession(null);
+    setEditValues(null);
+    setActivitySelection(0);
+    reload();
+    setScreen('activity');
+  };
+
   const changeSetupChoice = () => {
     setDraftPreferences((current) => {
       if (setupStep === 0) return { ...current, clockFormat: current.clockFormat === '12h' ? '24h' : '12h' };
@@ -507,8 +596,30 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     if (screen === 'activity') {
       if (key.escape) setScreen('timer');
       else if (key.tab) setActivityTab((value) => value === 'sessions' ? 'analytics' : 'sessions');
-      else if (key.leftArrow) setActivityDate((value) => previousDay(value));
-      else if (key.rightArrow) setActivityDate((value) => nextDay(value));
+      else if (key.leftArrow) { setActivityDate((value) => previousDay(value)); setActivitySelection(0); }
+      else if (key.rightArrow) { setActivityDate((value) => nextDay(value)); setActivitySelection(0); }
+      else if (activityTab === 'sessions' && key.upArrow) setActivitySelection((value) => Math.max(0, value - 1));
+      else if (activityTab === 'sessions' && key.downArrow) {
+        const count = activityForDay(store.history, activityDate).sessions.length;
+        setActivitySelection((value) => Math.min(Math.max(0, count - 1), value + 1));
+      }
+      else if (activityTab === 'sessions' && (key.return || keyInput === 'e')) {
+        const sessions = activityForDay(store.history, activityDate).sessions;
+        const selected = sessions[activitySelection];
+        if (selected) beginEditSession(selected);
+      }
+      return;
+    }
+    if (screen === 'edit-session') {
+      if (key.escape) {
+        setEditingSession(null);
+        setEditValues(null);
+        setStatus(null);
+        setScreen('activity');
+      } else if ((key.ctrl && keyInput === 'a') || keyInput === '\x01') setEditInput('');
+      else if (key.backspace) setEditInput((value) => value.slice(0, -1));
+      else if (key.return) commitEditStep();
+      else if (keyInput && !key.ctrl && !key.meta) setEditInput((value) => value + keyInput);
       return;
     }
     if (mode === 'input') {
@@ -534,13 +645,14 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     else if (keyInput === 'r') saveQuickPreference({ ...preferences, ringStyle: cycle(RING_STYLES, preferences.ringStyle) });
     else if (keyInput === 'c') saveQuickPreference({ ...preferences, ringConcept: cycle(RING_CONCEPTS, preferences.ringConcept) });
     else if (keyInput === '?') { setStatus(null); setScreen('help'); }
-    else if (keyInput === 'a') { setStatus(null); setActivityDate(new Date()); setActivityTab('sessions'); setScreen('activity'); }
+    else if (keyInput === 'a') { setStatus(null); setActivityDate(new Date()); setActivityTab('sessions'); setActivitySelection(0); setScreen('activity'); }
     else if (keyInput === 's') { setStatus(null); setDraftPreferences(preferences); setScreen('settings'); }
   });
 
   if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} status={status} />;
   if (screen === 'settings') return <SettingsScreen preferences={draftPreferences} focus={settingsFocus} status={status} />;
   if (screen === 'help') return <HelpScreen />;
-  if (screen === 'activity') return <ActivityScreen store={store} preferences={preferences} date={activityDate} tab={activityTab} />;
+  if (screen === 'activity') return <ActivityScreen store={store} preferences={preferences} date={activityDate} tab={activityTab} selectedIndex={activitySelection} />;
+  if (screen === 'edit-session' && editValues) return <EditSessionScreen values={editValues} step={editStep} input={editInput} status={status} />;
   return <Shell store={store} preferences={preferences} mode={mode} input={input} status={status} />;
 };

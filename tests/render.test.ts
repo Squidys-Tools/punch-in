@@ -306,6 +306,47 @@ describe('help and activity', () => {
     expect(frame).not.toContain('ACTIVE');
     expect(frame).not.toContain('Live');
   });
+
+  test('selects and edits a completed session project', async () => {
+    const now = new Date();
+    const started = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0);
+    const ended = new Date(started.getTime() + 45 * 60 * 1000);
+    writeFileSync(dataFile, JSON.stringify({
+      active: null,
+      history: [{
+        project: 'Research',
+        started_at: started,
+        ended_at: ended,
+        duration_secs: 45 * 60,
+      }],
+    }), 'utf8');
+
+    const instance = render(React.createElement(App));
+    await flush();
+    instance.stdin.write('a');
+    await flush();
+    expect(instance.lastFrame()).toContain('↑↓ select · Enter edit');
+    instance.stdin.write('\r');
+    await flush();
+    expect(instance.lastFrame()).toContain('EDIT TIME ENTRY');
+    instance.stdin.write('\x01');
+    await flush();
+    instance.stdin.write('Client');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    instance.stdin.write('\r');
+    await flush();
+    const frame = instance.lastFrame() ?? '';
+    const saved = JSON.parse(readFileSync(dataFile, 'utf8'));
+    instance.unmount();
+
+    expect(frame).toContain('ACTIVITY');
+    expect(frame).toContain('Client');
+    expect(saved.history[0].project).toBe('Client');
+  });
 });
 
 describe('preference save errors', () => {
