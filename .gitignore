@@ -1,6 +1,7 @@
 # Node / Bun
 node_modules/
 dist/
+coverage/
 
 # Rust build artifacts (legacy)
 /target

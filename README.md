@@ -50,7 +50,7 @@ punch uninstall
 
 This removes Punch but preserves session history and preferences. To remove those files too, use `punch uninstall --remove-data`; it requires an explicit confirmation and lists the exact files first.
 
-For development or a source checkout, you need [Bun](https://bun.sh/) installed.
+For development or a source checkout, you need [Bun](https://bun.sh/) 1.4.0 or newer installed.
 
 ```sh
 bun install
