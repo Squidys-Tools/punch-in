@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { createInterface } from 'node:readline/promises';
 import React from 'react';
-import { render } from 'ink';
+import { createCliRenderer } from '@opentui/core';
+import { createRoot } from '@opentui/react';
 import packageMetadata from '../package.json';
 import { goal, listDay, start, status, stop } from './commands.js';
 import { exportSessions } from './export.js';
@@ -42,6 +43,18 @@ function printResult(result: { ok: boolean; message: string }): void {
   }
 }
 
+async function runTui(initialScreen?: 'settings'): Promise<void> {
+  const renderer = await createCliRenderer();
+  if (initialScreen) {
+    createRoot(renderer).render(React.createElement(App, { initialScreen }));
+  } else {
+    createRoot(renderer).render(React.createElement(App));
+  }
+  await new Promise<void>((resolve) => {
+    renderer.once('destroy', () => resolve());
+  });
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const command = args[0];
@@ -52,11 +65,7 @@ async function main(): Promise<void> {
         printResult(status());
         return;
       }
-      const { waitUntilExit } = render(
-        React.createElement(App),
-        { alternateScreen: true },
-      );
-      waitUntilExit();
+      await runTui();
       return;
     }
     case 'in':
@@ -96,11 +105,7 @@ async function main(): Promise<void> {
         console.error('error: settings requires an interactive terminal');
         process.exit(1);
       }
-      const { waitUntilExit } = render(
-        React.createElement(App, { initialScreen: 'settings' }),
-        { alternateScreen: true },
-      );
-      waitUntilExit();
+      await runTui('settings');
       return;
     }
     case 'uninstall': {

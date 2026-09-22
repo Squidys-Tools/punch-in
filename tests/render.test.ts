@@ -1,6 +1,7 @@
+import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import React from 'react';
-import { render } from 'ink-testing-library';
+import { testRender } from '@opentui/react/test-utils';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -26,214 +27,296 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-async function flush(ms = 25): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+type Setup = Awaited<ReturnType<typeof testRender>>;
+
+const RENDER_SIZE = { width: 100, height: 30 };
+const STDIN_FLUSH_MS = 30;
+
+async function settle(setup: Setup): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, STDIN_FLUSH_MS));
+    await setup.renderOnce();
+  });
+}
+
+async function frameText(setup: Setup): Promise<string> {
+  await settle(setup);
+  return setup.captureCharFrame();
+}
+
+async function settledFrame(setup: Setup, needle: string): Promise<string> {
+  await settle(setup);
+  try {
+    return await setup.waitForFrame((frame) => frame.includes(needle));
+  } catch {
+    return setup.captureCharFrame();
+  }
+}
+
+type Input = {
+  typeText: (text: string) => Promise<void>;
+  pressEnter: () => Promise<void>;
+  pressEscape: () => Promise<void>;
+  pressTab: () => Promise<void>;
+  pressArrow: (direction: 'up' | 'down' | 'left' | 'right') => Promise<void>;
+  pressKey: (key: string, modifiers?: { shift?: boolean; ctrl?: boolean; meta?: boolean }) => Promise<void>;
+};
+
+function createInput(setup: Setup): Input {
+  const run = async (emit: () => void): Promise<void> => {
+    await act(async () => {
+      emit();
+      await new Promise((resolve) => setTimeout(resolve, STDIN_FLUSH_MS));
+      await setup.renderOnce();
+    });
+  };
+  return {
+    typeText: (text) => run(() => void setup.mockInput.typeText(text)),
+    pressEnter: () => run(() => setup.mockInput.pressEnter()),
+    pressEscape: () => run(() => setup.mockInput.pressEscape()),
+    pressTab: () => run(() => setup.mockInput.pressTab()),
+    pressArrow: (direction) => run(() => setup.mockInput.pressArrow(direction)),
+    pressKey: (key, modifiers) => run(() => setup.mockInput.pressKey(key, modifiers)),
+  };
 }
 
 describe('timer interactions', () => {
   test('idle footer exposes frequent actions without setup controls', async () => {
-    const instance = render(React.createElement(App));
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const frame = await settledFrame(setup, 'a activity');
 
-    expect(frame).toContain('a activity');
-    expect(frame).toContain('? help');
-    expect(frame).toContain('i start');
-    expect(frame).toContain('q quit');
-    expect(frame).not.toContain('design:');
-    expect(frame).not.toContain('g goal');
+      expect(frame).toContain('a activity');
+      expect(frame).toContain('? help');
+      expect(frame).toContain('i start');
+      expect(frame).toContain('q quit');
+      expect(frame).not.toContain('design:');
+      expect(frame).not.toContain('g goal');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('s opens settings from the main timer', async () => {
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('s');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('s');
+      const frame = await settledFrame(setup, 'SETTINGS');
 
-    expect(frame).toContain('SETTINGS');
+      expect(frame).toContain('SETTINGS');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('starting a project shows the active state and stop action', async () => {
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('i');
-    await flush();
-    instance.stdin.write('blog');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('i');
+      await frameText(setup);
+      await input.typeText('blog');
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'TRACKING');
 
-    expect(frame).toContain('blog');
-    expect(frame).toContain('o stop');
-    expect(frame).toContain('TRACKING');
+      expect(frame).toContain('blog');
+      expect(frame).toContain('o stop');
+      expect(frame).toContain('TRACKING');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('Esc cancels punch-out confirmation without writing a session', async () => {
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('i');
-    await flush();
-    instance.stdin.write('blog');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('o');
-    await flush();
-    expect(instance.lastFrame()).toContain('Esc cancel');
-    instance.stdin.write('\x1b');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('i');
+      await frameText(setup);
+      await input.typeText('blog');
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.typeText('o');
+      const confirmFrame = await settledFrame(setup, 'Esc cancel');
+      expect(confirmFrame).toContain('Esc cancel');
+      await input.pressEscape();
+      const frame = await settledFrame(setup, 'blog');
 
-    expect(frame).toContain('blog');
-    expect(JSON.parse(readFileSync(dataFile, 'utf8')).history).toHaveLength(0);
+      expect(frame).toContain('blog');
+      expect(JSON.parse(readFileSync(dataFile, 'utf8')).history).toHaveLength(0);
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('Enter confirms punch-out and reports the logged project', async () => {
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('i');
-    await flush();
-    instance.stdin.write('research');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('o');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('i');
+      await frameText(setup);
+      await input.typeText('research');
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.typeText('o');
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'Logged');
 
-    expect(frame).toContain('Logged');
-    expect(frame).toContain('research');
-    const stored = JSON.parse(readFileSync(dataFile, 'utf8'));
-    expect(stored.active).toBeNull();
-    expect(stored.history).toHaveLength(1);
+      expect(frame).toContain('Logged');
+      expect(frame).toContain('research');
+      const stored = JSON.parse(readFileSync(dataFile, 'utf8'));
+      expect(stored.active).toBeNull();
+      expect(stored.history).toHaveLength(1);
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('logged status does not leak into Help or Settings', async () => {
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('i');
-    await flush();
-    instance.stdin.write('research');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('o');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('?');
-    await flush();
-    expect(instance.lastFrame()).not.toContain('Logged');
-    instance.stdin.write('\x1b');
-    await flush();
-    instance.stdin.write('s');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('i');
+      await frameText(setup);
+      await input.typeText('research');
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.typeText('o');
+      await frameText(setup);
+      await input.pressEnter();
+      await settledFrame(setup, 'Logged');
+      await input.typeText('?');
+      const helpFrame = await frameText(setup);
+      expect(helpFrame).not.toContain('Logged');
+      await input.pressEscape();
+      await frameText(setup);
+      await input.typeText('s');
+      const frame = await settledFrame(setup, 'SETTINGS');
 
-    expect(frame).toContain('SETTINGS');
-    expect(frame).not.toContain('Logged');
+      expect(frame).toContain('SETTINGS');
+      expect(frame).not.toContain('Logged');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 });
 
 describe('setup and settings', () => {
   test('first launch requires setup before showing the timer', async () => {
     unlinkSync(preferencesFile);
-    const instance = render(React.createElement(App));
-    await flush();
-    expect(instance.lastFrame()).toContain('WELCOME TO PUNCH');
-    expect(instance.lastFrame()).not.toContain('ready when you are');
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      const welcomeFrame = await settledFrame(setup, 'WELCOME TO PUNCH');
+      expect(welcomeFrame).toContain('WELCOME TO PUNCH');
+      expect(welcomeFrame).not.toContain('ready when you are');
 
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'ready when you are');
 
-    expect(frame).toContain('ready when you are');
-    expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).setupComplete).toBe(true);
+      expect(frame).toContain('ready when you are');
+      expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).setupComplete).toBe(true);
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('settings uses Space to change and Enter to save', async () => {
-    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
-    await flush();
-    expect(instance.lastFrame()).toContain('SETTINGS');
-    expect(instance.lastFrame()).toContain('Space change');
+    const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      const settingsFrame = await settledFrame(setup, 'SETTINGS');
+      expect(settingsFrame).toContain('SETTINGS');
+      expect(settingsFrame).toContain('Space change');
 
-    instance.stdin.write(' ');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
-    instance.unmount();
+      await input.typeText(' ');
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
 
-    expect(saved.clockFormat).toBe('24h');
+      expect(saved.clockFormat).toBe('24h');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('settings cycles and saves timer colors', async () => {
-    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
-    await flush();
-    instance.stdin.write('\x1b[B');
-    await flush();
-    instance.stdin.write('\x1b[B');
-    await flush();
-    expect(instance.lastFrame()).toContain('timer color: gray');
-    instance.stdin.write(' ');
-    await flush();
-    expect(instance.lastFrame()).toContain('timer color: pink');
-    instance.stdin.write('\r');
-    await flush();
-    const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
-    instance.unmount();
+    const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.pressArrow('down');
+      await frameText(setup);
+      await input.pressArrow('down');
+      const grayFrame = await settledFrame(setup, 'timer color: gray');
+      expect(grayFrame).toContain('timer color: gray');
+      await input.typeText(' ');
+      const pinkFrame = await settledFrame(setup, 'timer color: pink');
+      expect(pinkFrame).toContain('timer color: pink');
+      await input.pressEnter();
+      await frameText(setup);
+      const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
 
-    expect(saved.color).toBe('pink');
+      expect(saved.color).toBe('pink');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('Esc discards unsaved settings and returns to the timer', async () => {
-    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
-    await flush();
-    instance.stdin.write(' ');
-    await flush();
-    instance.stdin.write('\x1b');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText(' ');
+      await frameText(setup);
+      await input.pressEscape();
+      const frame = await settledFrame(setup, 'ready when you are');
 
-    expect(frame).toContain('ready when you are');
-    expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).clockFormat).toBe('12h');
+      expect(frame).toContain('ready when you are');
+      expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).clockFormat).toBe('12h');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 });
 
 describe('help and activity', () => {
   test('Help opens as a read-only overlay and Esc returns to the timer', async () => {
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('?');
-    await flush();
-    const helpFrame = instance.lastFrame() ?? '';
-    expect(helpFrame).toContain('HELP');
-    expect(helpFrame).toContain('a open Activity');
-    expect(helpFrame).toContain('Esc close');
-    expect(helpFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
-    instance.stdin.write('\x1b');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('?');
+      const helpFrame = await settledFrame(setup, 'HELP');
+      expect(helpFrame).toContain('HELP');
+      expect(helpFrame).toContain('a open Activity');
+      expect(helpFrame).toContain('Esc close');
+      expect(helpFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
+      await input.pressEscape();
+      const frame = await settledFrame(setup, 'ready when you are');
 
-    expect(frame).toContain('ready when you are');
-    expect(frame).not.toContain('HELP');
+      expect(frame).toContain('ready when you are');
+      expect(frame).not.toContain('HELP');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('Activity opens on today sessions and Tab switches to analytics', async () => {
@@ -249,24 +332,26 @@ describe('help and activity', () => {
       }],
     }), 'utf8');
 
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('a');
-    await flush();
-    const activityFrame = instance.lastFrame() ?? '';
-    expect(activityFrame).toContain('ACTIVITY');
-    expect(activityFrame).toContain('SESSIONS');
-    expect(activityFrame).toContain('Research');
-    expect(activityFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
-    instance.stdin.write('\t');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      const activityFrame = await settledFrame(setup, 'ACTIVITY');
+      expect(activityFrame).toContain('ACTIVITY');
+      expect(activityFrame).toContain('SESSIONS');
+      expect(activityFrame).toContain('Research');
+      expect(activityFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
+      await input.pressTab();
+      const frame = await settledFrame(setup, 'ANALYTICS');
 
-    expect(frame).toContain('ANALYTICS');
-    expect(frame).toContain('TOTAL');
-    expect(frame).toContain('AVERAGE');
-    expect(frame).toContain('Research');
+      expect(frame).toContain('ANALYTICS');
+      expect(frame).toContain('TOTAL');
+      expect(frame).toContain('AVERAGE');
+      expect(frame).toContain('Research');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('Activity shows an active session without inventing a stop time', async () => {
@@ -276,15 +361,18 @@ describe('help and activity', () => {
       history: [],
     }), 'utf8');
 
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('a');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      const frame = await settledFrame(setup, 'ACTIVITY');
 
-    expect(frame).toContain('ACTIVE');
-    expect(frame).toContain('Live');
+      expect(frame).toContain('ACTIVE');
+      expect(frame).toContain('Live');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('Activity hides the active session when viewing another day', async () => {
@@ -294,17 +382,20 @@ describe('help and activity', () => {
       history: [],
     }), 'utf8');
 
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('a');
-    await flush();
-    instance.stdin.write('\x1b[D');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      await frameText(setup);
+      await input.pressArrow('left');
+      const frame = await frameText(setup);
 
-    expect(frame).not.toContain('ACTIVE');
-    expect(frame).not.toContain('Live');
+      expect(frame).not.toContain('ACTIVE');
+      expect(frame).not.toContain('Live');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('selects and edits a completed session project', async () => {
@@ -321,31 +412,34 @@ describe('help and activity', () => {
       }],
     }), 'utf8');
 
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('a');
-    await flush();
-    expect(instance.lastFrame()).toContain('↑↓ select · Enter edit');
-    instance.stdin.write('\r');
-    await flush();
-    expect(instance.lastFrame()).toContain('EDIT TIME ENTRY');
-    instance.stdin.write('\x01');
-    await flush();
-    instance.stdin.write('Client');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    const saved = JSON.parse(readFileSync(dataFile, 'utf8'));
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      const sessionsFrame = await settledFrame(setup, '↑↓ select · Enter edit');
+      expect(sessionsFrame).toContain('↑↓ select · Enter edit');
+      await input.pressEnter();
+      const editFrame = await settledFrame(setup, 'EDIT TIME ENTRY');
+      expect(editFrame).toContain('EDIT TIME ENTRY');
+      await input.pressKey('a', { ctrl: true });
+      await frameText(setup);
+      await input.typeText('Client');
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'ACTIVITY');
+      const saved = JSON.parse(readFileSync(dataFile, 'utf8'));
 
-    expect(frame).toContain('ACTIVITY');
-    expect(frame).toContain('Client');
-    expect(saved.history[0].project).toBe('Client');
+      expect(frame).toContain('ACTIVITY');
+      expect(frame).toContain('Client');
+      expect(saved.history[0].project).toBe('Client');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 });
 
@@ -355,60 +449,69 @@ describe('preference save errors', () => {
     writeFileSync(blockedParent, 'not a directory', 'utf8');
     process.env.PUNCH_PREFERENCES = path.join(blockedParent, 'preferences.json');
 
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'failed to prepare directory for preferences');
 
-    expect(frame).toContain('failed to prepare directory for preferences');
+      expect(frame).toContain('failed to prepare directory for preferences');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('quarantines an unreadable preferences file and never overwrites it', async () => {
     const corrupt = '{not valid preferences';
     writeFileSync(preferencesFile, corrupt, 'utf8');
 
-    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
-    await flush();
-    expect(instance.lastFrame()).toContain('Unable to load preferences');
-    instance.stdin.write(' ');
-    await flush();
-    instance.stdin.write('\r');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      const loadErrorFrame = await settledFrame(setup, 'Unable to load preferences');
+      expect(loadErrorFrame).toContain('Unable to load preferences');
+      await input.typeText(' ');
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'Unable to save preferences');
 
-    expect(frame).toContain('Unable to save preferences');
-    expect(frame).toContain('moved aside');
-    expect(existsSync(preferencesFile)).toBe(false);
-    const backup = readdirSync(dir).find((name) => name.startsWith('preferences.json.corrupt-'));
-    expect(backup).toBeDefined();
-    expect(readFileSync(path.join(dir, backup ?? ''), 'utf8')).toBe(corrupt);
+      expect(frame).toContain('Unable to save preferences');
+      expect(frame).toContain('moved aside');
+      expect(existsSync(preferencesFile)).toBe(false);
+      const backup = readdirSync(dir).find((name) => name.startsWith('preferences.json.corrupt-'));
+      expect(backup).toBeDefined();
+      expect(readFileSync(path.join(dir, backup ?? ''), 'utf8')).toBe(corrupt);
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 
   test('quick preference keys also refuse to save over quarantined preferences', async () => {
     const corrupt = '{not valid preferences';
     writeFileSync(preferencesFile, corrupt, 'utf8');
 
-    const instance = render(React.createElement(App, { initialScreen: 'settings' }));
-    await flush();
-    instance.stdin.write('\x1b');
-    await flush();
-    instance.stdin.write('t');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.pressEscape();
+      await frameText(setup);
+      await input.typeText('t');
+      const frame = await settledFrame(setup, 'Unable to save preferences');
 
-    expect(frame).toContain('Unable to save preferences');
-    expect(existsSync(preferencesFile)).toBe(false);
-    const backup = readdirSync(dir).find((name) => name.startsWith('preferences.json.corrupt-'));
-    expect(backup).toBeDefined();
-    expect(readFileSync(path.join(dir, backup ?? ''), 'utf8')).toBe(corrupt);
+      expect(frame).toContain('Unable to save preferences');
+      expect(existsSync(preferencesFile)).toBe(false);
+      const backup = readdirSync(dir).find((name) => name.startsWith('preferences.json.corrupt-'));
+      expect(backup).toBeDefined();
+      expect(readFileSync(path.join(dir, backup ?? ''), 'utf8')).toBe(corrupt);
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 });
 
@@ -426,13 +529,16 @@ describe('optional project reuse', () => {
     }), 'utf8');
     savePreferencesPath(preferencesFile, { ...DEFAULT_PREFERENCES, setupComplete: true, reuseLastProject: true });
 
-    const instance = render(React.createElement(App));
-    await flush();
-    instance.stdin.write('i');
-    await flush();
-    const frame = instance.lastFrame() ?? '';
-    instance.unmount();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('i');
+      const frame = await settledFrame(setup, 'project name: Previous project');
 
-    expect(frame).toContain('project name: Previous project');
+      expect(frame).toContain('project name: Previous project');
+    } finally {
+      setup.renderer.destroy();
+    }
   });
 });
