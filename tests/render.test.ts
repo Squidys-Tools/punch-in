@@ -47,10 +47,14 @@ async function frameText(setup: Setup): Promise<string> {
 async function settledFrame(setup: Setup, needle: string): Promise<string> {
   await settle(setup);
   try {
-    return await setup.waitForFrame((frame) => frame.includes(needle));
+    return await setup.waitForFrame((frame) => flat(frame).includes(needle));
   } catch {
     return setup.captureCharFrame();
   }
+}
+
+function flat(frame: string): string {
+  return frame.replace(/\s+/g, ' ');
 }
 
 type Input = {
@@ -86,12 +90,12 @@ describe('timer interactions', () => {
     try {
       const frame = await settledFrame(setup, 'a activity');
 
-      expect(frame).toContain('a activity');
-      expect(frame).toContain('? help');
-      expect(frame).toContain('i start');
-      expect(frame).toContain('q quit');
-      expect(frame).not.toContain('design:');
-      expect(frame).not.toContain('g goal');
+      expect(flat(frame)).toContain('a activity');
+      expect(flat(frame)).toContain('? help');
+      expect(flat(frame)).toContain('i start');
+      expect(flat(frame)).toContain('q quit');
+      expect(flat(frame)).not.toContain('design:');
+      expect(flat(frame)).not.toContain('g goal');
     } finally {
       setup.renderer.destroy();
     }
@@ -105,7 +109,7 @@ describe('timer interactions', () => {
       await input.typeText('s');
       const frame = await settledFrame(setup, 'SETTINGS');
 
-      expect(frame).toContain('SETTINGS');
+      expect(flat(frame)).toContain('SETTINGS');
     } finally {
       setup.renderer.destroy();
     }
@@ -123,9 +127,9 @@ describe('timer interactions', () => {
       await input.pressEnter();
       const frame = await settledFrame(setup, 'TRACKING');
 
-      expect(frame).toContain('blog');
-      expect(frame).toContain('o stop');
-      expect(frame).toContain('TRACKING');
+      expect(flat(frame)).toContain('blog');
+      expect(flat(frame)).toContain('o stop');
+      expect(flat(frame)).toContain('TRACKING');
     } finally {
       setup.renderer.destroy();
     }
@@ -144,11 +148,11 @@ describe('timer interactions', () => {
       await frameText(setup);
       await input.typeText('o');
       const confirmFrame = await settledFrame(setup, 'Esc cancel');
-      expect(confirmFrame).toContain('Esc cancel');
+      expect(flat(confirmFrame)).toContain('Esc cancel');
       await input.pressEscape();
       const frame = await settledFrame(setup, 'blog');
 
-      expect(frame).toContain('blog');
+      expect(flat(frame)).toContain('blog');
       expect(JSON.parse(readFileSync(dataFile, 'utf8')).history).toHaveLength(0);
     } finally {
       setup.renderer.destroy();
@@ -171,8 +175,8 @@ describe('timer interactions', () => {
       await input.pressEnter();
       const frame = await settledFrame(setup, 'Logged');
 
-      expect(frame).toContain('Logged');
-      expect(frame).toContain('research');
+      expect(flat(frame)).toContain('Logged');
+      expect(flat(frame)).toContain('research');
       const stored = JSON.parse(readFileSync(dataFile, 'utf8'));
       expect(stored.active).toBeNull();
       expect(stored.history).toHaveLength(1);
@@ -198,14 +202,14 @@ describe('timer interactions', () => {
       await settledFrame(setup, 'Logged');
       await input.typeText('?');
       const helpFrame = await frameText(setup);
-      expect(helpFrame).not.toContain('Logged');
+      expect(flat(helpFrame)).not.toContain('Logged');
       await input.pressEscape();
       await frameText(setup);
       await input.typeText('s');
       const frame = await settledFrame(setup, 'SETTINGS');
 
-      expect(frame).toContain('SETTINGS');
-      expect(frame).not.toContain('Logged');
+      expect(flat(frame)).toContain('SETTINGS');
+      expect(flat(frame)).not.toContain('Logged');
     } finally {
       setup.renderer.destroy();
     }
@@ -219,8 +223,8 @@ describe('setup and settings', () => {
     try {
       const input = createInput(setup);
       const welcomeFrame = await settledFrame(setup, 'WELCOME TO PUNCH');
-      expect(welcomeFrame).toContain('WELCOME TO PUNCH');
-      expect(welcomeFrame).not.toContain('ready when you are');
+      expect(flat(welcomeFrame)).toContain('WELCOME TO PUNCH');
+      expect(flat(welcomeFrame)).not.toContain('ready when you are');
 
       await input.pressEnter();
       await frameText(setup);
@@ -229,7 +233,7 @@ describe('setup and settings', () => {
       await input.pressEnter();
       const frame = await settledFrame(setup, 'ready when you are');
 
-      expect(frame).toContain('ready when you are');
+      expect(flat(frame)).toContain('ready when you are');
       expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).setupComplete).toBe(true);
     } finally {
       setup.renderer.destroy();
@@ -241,8 +245,8 @@ describe('setup and settings', () => {
     try {
       const input = createInput(setup);
       const settingsFrame = await settledFrame(setup, 'SETTINGS');
-      expect(settingsFrame).toContain('SETTINGS');
-      expect(settingsFrame).toContain('Space change');
+      expect(flat(settingsFrame)).toContain('SETTINGS');
+      expect(flat(settingsFrame)).toContain('Space change');
 
       await input.typeText(' ');
       await frameText(setup);
@@ -265,10 +269,10 @@ describe('setup and settings', () => {
       await frameText(setup);
       await input.pressArrow('down');
       const grayFrame = await settledFrame(setup, 'timer color: gray');
-      expect(grayFrame).toContain('timer color: gray');
+      expect(flat(grayFrame)).toContain('timer color: gray');
       await input.typeText(' ');
       const pinkFrame = await settledFrame(setup, 'timer color: pink');
-      expect(pinkFrame).toContain('timer color: pink');
+      expect(flat(pinkFrame)).toContain('timer color: pink');
       await input.pressEnter();
       await frameText(setup);
       const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
@@ -289,7 +293,7 @@ describe('setup and settings', () => {
       await input.pressEscape();
       const frame = await settledFrame(setup, 'ready when you are');
 
-      expect(frame).toContain('ready when you are');
+      expect(flat(frame)).toContain('ready when you are');
       expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).clockFormat).toBe('12h');
     } finally {
       setup.renderer.destroy();
@@ -305,15 +309,15 @@ describe('help and activity', () => {
       await frameText(setup);
       await input.typeText('?');
       const helpFrame = await settledFrame(setup, 'HELP');
-      expect(helpFrame).toContain('HELP');
-      expect(helpFrame).toContain('a open Activity');
-      expect(helpFrame).toContain('Esc close');
+      expect(flat(helpFrame)).toContain('HELP');
+      expect(flat(helpFrame)).toContain('a open Activity');
+      expect(flat(helpFrame)).toContain('Esc close');
       expect(helpFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
       await input.pressEscape();
       const frame = await settledFrame(setup, 'ready when you are');
 
-      expect(frame).toContain('ready when you are');
-      expect(frame).not.toContain('HELP');
+      expect(flat(frame)).toContain('ready when you are');
+      expect(flat(frame)).not.toContain('HELP');
     } finally {
       setup.renderer.destroy();
     }
@@ -338,17 +342,17 @@ describe('help and activity', () => {
       await frameText(setup);
       await input.typeText('a');
       const activityFrame = await settledFrame(setup, 'ACTIVITY');
-      expect(activityFrame).toContain('ACTIVITY');
-      expect(activityFrame).toContain('SESSIONS');
-      expect(activityFrame).toContain('Research');
+      expect(flat(activityFrame)).toContain('ACTIVITY');
+      expect(flat(activityFrame)).toContain('SESSIONS');
+      expect(flat(activityFrame)).toContain('Research');
       expect(activityFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
       await input.pressTab();
       const frame = await settledFrame(setup, 'ANALYTICS');
 
-      expect(frame).toContain('ANALYTICS');
-      expect(frame).toContain('TOTAL');
-      expect(frame).toContain('AVERAGE');
-      expect(frame).toContain('Research');
+      expect(flat(frame)).toContain('ANALYTICS');
+      expect(flat(frame)).toContain('TOTAL');
+      expect(flat(frame)).toContain('AVERAGE');
+      expect(flat(frame)).toContain('Research');
     } finally {
       setup.renderer.destroy();
     }
@@ -368,8 +372,8 @@ describe('help and activity', () => {
       await input.typeText('a');
       const frame = await settledFrame(setup, 'ACTIVITY');
 
-      expect(frame).toContain('ACTIVE');
-      expect(frame).toContain('Live');
+      expect(flat(frame)).toContain('ACTIVE');
+      expect(flat(frame)).toContain('Live');
     } finally {
       setup.renderer.destroy();
     }
@@ -391,8 +395,8 @@ describe('help and activity', () => {
       await input.pressArrow('left');
       const frame = await frameText(setup);
 
-      expect(frame).not.toContain('ACTIVE');
-      expect(frame).not.toContain('Live');
+      expect(flat(frame)).not.toContain('ACTIVE');
+      expect(flat(frame)).not.toContain('Live');
     } finally {
       setup.renderer.destroy();
     }
@@ -418,10 +422,10 @@ describe('help and activity', () => {
       await frameText(setup);
       await input.typeText('a');
       const sessionsFrame = await settledFrame(setup, '↑↓ select · Enter edit');
-      expect(sessionsFrame).toContain('↑↓ select · Enter edit');
+      expect(flat(sessionsFrame)).toContain('↑↓ select · Enter edit');
       await input.pressEnter();
       const editFrame = await settledFrame(setup, 'EDIT TIME ENTRY');
-      expect(editFrame).toContain('EDIT TIME ENTRY');
+      expect(flat(editFrame)).toContain('EDIT TIME ENTRY');
       await input.pressKey('a', { ctrl: true });
       await frameText(setup);
       await input.typeText('Client');
@@ -434,8 +438,8 @@ describe('help and activity', () => {
       const frame = await settledFrame(setup, 'ACTIVITY');
       const saved = JSON.parse(readFileSync(dataFile, 'utf8'));
 
-      expect(frame).toContain('ACTIVITY');
-      expect(frame).toContain('Client');
+      expect(flat(frame)).toContain('ACTIVITY');
+      expect(flat(frame)).toContain('Client');
       expect(saved.history[0].project).toBe('Client');
     } finally {
       setup.renderer.destroy();
@@ -460,7 +464,7 @@ describe('preference save errors', () => {
       await input.pressEnter();
       const frame = await settledFrame(setup, 'failed to prepare directory for preferences');
 
-      expect(frame).toContain('failed to prepare directory for preferences');
+      expect(flat(frame)).toContain('failed to prepare directory for preferences');
     } finally {
       setup.renderer.destroy();
     }
@@ -474,14 +478,14 @@ describe('preference save errors', () => {
     try {
       const input = createInput(setup);
       const loadErrorFrame = await settledFrame(setup, 'Unable to load preferences');
-      expect(loadErrorFrame).toContain('Unable to load preferences');
+      expect(flat(loadErrorFrame)).toContain('Unable to load preferences');
       await input.typeText(' ');
       await frameText(setup);
       await input.pressEnter();
       const frame = await settledFrame(setup, 'Unable to save preferences');
 
-      expect(frame).toContain('Unable to save preferences');
-      expect(frame).toContain('moved aside');
+      expect(flat(frame)).toContain('Unable to save preferences');
+      expect(flat(frame)).toContain('moved aside');
       expect(existsSync(preferencesFile)).toBe(false);
       const backup = readdirSync(dir).find((name) => name.startsWith('preferences.json.corrupt-'));
       expect(backup).toBeDefined();
@@ -504,7 +508,7 @@ describe('preference save errors', () => {
       await input.typeText('t');
       const frame = await settledFrame(setup, 'Unable to save preferences');
 
-      expect(frame).toContain('Unable to save preferences');
+      expect(flat(frame)).toContain('Unable to save preferences');
       expect(existsSync(preferencesFile)).toBe(false);
       const backup = readdirSync(dir).find((name) => name.startsWith('preferences.json.corrupt-'));
       expect(backup).toBeDefined();
@@ -536,7 +540,7 @@ describe('optional project reuse', () => {
       await input.typeText('i');
       const frame = await settledFrame(setup, 'project name: Previous project');
 
-      expect(frame).toContain('project name: Previous project');
+      expect(flat(frame)).toContain('project name: Previous project');
     } finally {
       setup.renderer.destroy();
     }
