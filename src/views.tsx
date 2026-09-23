@@ -135,12 +135,11 @@ function TimerGlyphs({
 
   syncAnimationState(state, {
     active: true,
-    secs,
     digits: digitKey(baseBlocks),
     now,
     animation,
   });
-  const blocks = prepareBlocks({ blocks: baseBlocks, font, animation, active: true, now, state });
+  const blocks = prepareBlocks({ blocks: baseBlocks, animation, active: true, now });
   const height = blocks[0]?.rows.length ?? 0;
 
   const totalVisible = Math.max(

@@ -299,14 +299,14 @@ describe('setup and settings', () => {
       expect(flat(noneFrame)).toContain('timer animation: none');
       expect(flat(noneFrame)).toContain('static digits');
       await input.typeText(' ');
-      const pulseFrame = await settledFrame(setup, 'timer animation: pulse');
-      expect(flat(pulseFrame)).toContain('timer animation: pulse');
-      expect(flat(pulseFrame)).toContain('brightness pulse each second');
+      const digitFlashFrame = await settledFrame(setup, 'timer animation: digit flash');
+      expect(flat(digitFlashFrame)).toContain('timer animation: digit flash');
+      expect(flat(digitFlashFrame)).toContain('flash only digits that change');
       await input.pressEnter();
       await frameText(setup);
       const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
 
-      expect(saved.animation).toBe('pulse');
+      expect(saved.animation).toBe('digit-flash');
     } finally {
       setup.renderer.destroy();
     }
