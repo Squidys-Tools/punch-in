@@ -10,8 +10,19 @@ import {
   type Preferences,
   loadPreferences,
 } from './preferences.js';
-import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, gradientColor, timerFontHeight, timerRows, type TimerColor, type TimerFont } from './fonts.js';
+import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, gradientColor, timerBlocks, timerFontHeight, type TimerColor, type TimerFont } from './fonts.js';
 import { RING_CONCEPTS, RING_STYLES, ringData, ringGrid, ringHeight, type Cell, type RingConcept, type RingStyle } from './ring.js';
+import {
+  TIMER_ANIMATIONS,
+  animationDescription,
+  animationLabel,
+  createAnimationState,
+  digitKey,
+  faceColor,
+  prepareBlocks,
+  syncAnimationState,
+  type TimerAnimation,
+} from './timer-animation.js';
 
 export type InitialScreen = 'timer' | 'settings';
 export type { TimerFont } from './fonts.js';
@@ -86,18 +97,116 @@ function GradientText({ row }: { row: string }) {
   );
 }
 
-function TimerGlyphs({ active, font, color }: { active: Active | null; font: TimerFont; color: TimerColor }) {
-  const rows = timerRows(active ? elapsedSeconds(active) : 0, font);
+function TimerGlyphs({
+  active,
+  font,
+  color,
+  animation,
+}: {
+  active: Active | null;
+  font: TimerFont;
+  color: TimerColor;
+  animation: TimerAnimation;
+}) {
+  const secs = active ? elapsedSeconds(active) : 0;
+  const now = Date.now();
   const glyphColor = color !== 'gray' ? TIMER_COLOR_HEX[color] : active ? 'green' : 'gray';
+  const motion = active !== null && animation !== 'none';
+  const stateRef = React.useRef(createAnimationState(animation));
+  const state = stateRef.current;
+  const baseBlocks = timerBlocks(secs, font);
+
+  if (!motion) {
+    const staticRows = Array.from({ length: baseBlocks[0]?.rows.length ?? 0 }, (_, row) =>
+      baseBlocks.map((block) => `${block.rows[row] ?? ''} `).join(''),
+    );
+    return (
+      <>
+        {staticRows.map((row, index) =>
+          font === 'gradient' ? (
+            <GradientText key={index} row={row} />
+          ) : (
+            <text key={index} fg={glyphColor}><b>{row}</b></text>
+          ),
+        )}
+      </>
+    );
+  }
+
+  syncAnimationState(state, {
+    active: true,
+    secs,
+    digits: digitKey(baseBlocks),
+    now,
+    animation,
+  });
+  const blocks = prepareBlocks({ blocks: baseBlocks, font, animation, active: true, now, state });
+  const height = blocks[0]?.rows.length ?? 0;
+
+  const totalVisible = Math.max(
+    1,
+    blocks.reduce(
+      (sum, block) => sum + Math.max(1, [...(block.rows[0] ?? '')].filter((ch) => ch !== ' ').length),
+      0,
+    ) - 1,
+  );
+  let runningGradient = 0;
+  const starts = blocks.map((block) => {
+    const visible = Math.max(1, [...(block.rows[0] ?? '')].filter((ch) => ch !== ' ').length);
+    const start = runningGradient;
+    runningGradient += visible;
+    return { start, visible };
+  });
+
   return (
     <>
-      {rows.map((row, index) =>
-        font === 'gradient' ? (
-          <GradientText key={index} row={row} />
-        ) : (
-          <text key={index} fg={glyphColor}><b>{row}</b></text>
-        ),
-      )}
+      {Array.from({ length: height }, (_, row) => (
+        <text key={row}>
+          <b>
+            {blocks.map((block, blockIndex) => {
+              const face = faceColor({
+                baseColor: glyphColor,
+                animation,
+                place: block.place,
+                kind: block.kind,
+                active: true,
+                now,
+                state,
+              });
+              const glyph = block.rows[row] ?? '';
+              const range = starts[blockIndex]!;
+              return (
+                <React.Fragment key={blockIndex}>
+                  {[...glyph].map((ch, charIndex) => {
+                    if (ch === ' ') return <React.Fragment key={charIndex}> </React.Fragment>;
+                    let fg = face;
+                    if (font === 'gradient') {
+                      const progress = (range.start + Math.min(charIndex, range.visible - 1)) / totalVisible;
+                      const { r, g, b } = gradientColor(progress);
+                      const hex = `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+                      fg = faceColor({
+                        baseColor: hex,
+                        animation,
+                        place: block.place,
+                        kind: block.kind,
+                        active: true,
+                        now,
+                        state,
+                      });
+                    }
+                    return (
+                      <span key={charIndex} fg={fg}>
+                        {ch}
+                      </span>
+                    );
+                  })}
+                  <React.Fragment key="gap"> </React.Fragment>
+                </React.Fragment>
+              );
+            })}
+          </b>
+        </text>
+      ))}
     </>
   );
 }
@@ -122,10 +231,9 @@ function TimerBody({ store, preferences, compact }: { store: Store; preferences:
   const data = ringData(store, preferences.ringConcept);
   return (
     <box style={{ flexDirection: 'column', alignItems: 'center' }}>
-      <TimerGlyphs active={active} font={preferences.font} color={preferences.color} />
+      <TimerGlyphs active={active} font={preferences.font} color={preferences.color} animation={preferences.animation} />
       {active ? (
         <>
-          <text fg="magenta"><b>● TRACKING</b></text>
           <text fg="cyan"><b>▶ {active.project}</b></text>
           {!compact && <text fg="gray">started {formatTime(active.started_at, preferences.clockFormat, true)}</text>}
         </>
@@ -214,8 +322,23 @@ function SetupScreen({ preferences, step, focus, status }: { preferences: Prefer
   );
 }
 
-type SettingKey = 'clockFormat' | 'font' | 'color' | 'ringStyle' | 'ringConcept' | 'reuseLastProject';
-const SETTING_KEYS: SettingKey[] = ['clockFormat', 'font', 'color', 'ringStyle', 'ringConcept', 'reuseLastProject'];
+type SettingKey =
+  | 'clockFormat'
+  | 'font'
+  | 'color'
+  | 'ringStyle'
+  | 'ringConcept'
+  | 'reuseLastProject'
+  | 'animation';
+const SETTING_KEYS: SettingKey[] = [
+  'clockFormat',
+  'font',
+  'color',
+  'ringStyle',
+  'ringConcept',
+  'reuseLastProject',
+  'animation',
+];
 
 function settingLabel(key: SettingKey): string {
   switch (key) {
@@ -225,12 +348,14 @@ function settingLabel(key: SettingKey): string {
     case 'ringStyle': return 'ring style';
     case 'ringConcept': return 'ring concept';
     case 'reuseLastProject': return 'reuse last project';
+    case 'animation': return 'timer animation';
   }
 }
 
 function settingValue(preferences: Preferences, key: SettingKey): string {
   if (key === 'clockFormat') return clockLabel(preferences.clockFormat);
   if (key === 'reuseLastProject') return preferences.reuseLastProject ? 'on' : 'off';
+  if (key === 'animation') return animationLabel(preferences.animation);
   return preferences[key];
 }
 
@@ -247,6 +372,7 @@ function SettingsScreen({ preferences, focus, status }: { preferences: Preferenc
             {focus === index ? '› ' : '  '}{settingLabel(key)}: {focus === index ? <b>{settingValue(preferences, key)}</b> : settingValue(preferences, key)}
           </text>
         ))}
+        <text fg="gray">  {animationDescription(preferences.animation)}</text>
         <text>{' '}</text>
         <text fg="gray">keys · i start · o stop · a activity · t/r/c style · q quit</text>
         <text fg="gray">↑↓ move · Space change · Enter save · Esc cancel</text>
@@ -417,10 +543,11 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
   const [editInput, setEditInput] = React.useState('');
 
   const [, setTick] = React.useState(0);
+  const animationActive = preferences.animation !== 'none' && store.active !== null;
   React.useEffect(() => {
-    const timer = setInterval(() => setTick((value) => value + 1), 500);
+    const timer = setInterval(() => setTick((value) => value + 1), animationActive ? 50 : 500);
     return () => clearInterval(timer);
-  }, []);
+  }, [animationActive]);
 
   const report = (result: CmdResult) => setStatus({ text: result.message, isError: !result.ok });
   const reload = () => setStore(loadStore());
@@ -429,7 +556,9 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     const value = input.trim();
     setInput('');
     setMode('normal');
-    report(cmdStart(value || null));
+    const result = cmdStart(value || null);
+    if (result.ok) setStatus(null);
+    else report(result);
     reload();
   };
 
@@ -553,6 +682,7 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       if (key === 'color') return { ...current, color: cycle(TIMER_COLORS, current.color) };
       if (key === 'ringStyle') return { ...current, ringStyle: cycle(RING_STYLES, current.ringStyle) };
       if (key === 'ringConcept') return { ...current, ringConcept: cycle(RING_CONCEPTS, current.ringConcept) };
+      if (key === 'animation') return { ...current, animation: cycle(TIMER_ANIMATIONS, current.animation) };
       return { ...current, reuseLastProject: !current.reuseLastProject };
     });
   };

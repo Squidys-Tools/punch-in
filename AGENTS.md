@@ -4,7 +4,7 @@ Guidance for AI agents working in this repository.
 
 ## What this is
 
-`punch` is a small terminal time tracker built with Bun, TypeScript, React, and Ink. Session history lives in a local JSON file; there is no server or account. It is distributed via npm, standalone installers (Windows/macOS/Linux), and GitHub releases.
+`punch` is a small terminal time tracker built with Bun, TypeScript, React, and Ink. Session history lives in a local JSON file; there is no server or account. It is distributed via npm (`punch-in` package, `punch` bin), standalone installers (Windows/macOS/Linux), and GitHub releases.
 
 ## Project layout
 
@@ -64,4 +64,4 @@ Note on `--parallel`: Bun versions before 1.4.0 have a module-init race in the I
 
 ## Release flow
 
-Releases are tag-driven: push a `v*` tag matching `package.json` version, and GitHub Actions builds/verifies/uploads artifacts. Version bumps belong in `package.json` only.
+Releases are tag-driven: push a `v*` tag matching `package.json` version, and GitHub Actions builds/verifies/uploads artifacts. Version bumps belong in `package.json` only. The npm package name is `punch-in` (the `punch` name is taken); the CLI bin stays `punch`. Nightly npm pre-releases publish from `.github/workflows/nightly-npm.yml` under the `nightly` dist-tag and require the `NPM_TOKEN` repo secret.

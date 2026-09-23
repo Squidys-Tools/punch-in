@@ -9,10 +9,10 @@ It is built with Bun, TypeScript, React, and Ink. Session history is stored in a
 For the published package, install Punch globally with npm:
 
 ```sh
-npm install --global punch
+npm install --global punch-in
 ```
 
-Check the installed version with:
+This installs the `punch` command. Check the installed version with:
 
 ```sh
 punch --version
@@ -21,10 +21,16 @@ punch --version
 To remove the npm installation:
 
 ```sh
-npm uninstall --global punch
+npm uninstall --global punch-in
 ```
 
 npm removes the program but does not remove session history or preferences. Those files stay in the data paths described below.
+
+Nightly pre-releases are published under the `nightly` dist-tag:
+
+```sh
+npm install --global punch-in@nightly
+```
 
 For a standalone Windows install, run the PowerShell installer from the latest GitHub release:
 
@@ -119,7 +125,7 @@ q       Quit
 
 In Activity, the up and down arrow keys select a completed session, `Enter` edits it, `Tab` switches between Sessions and Analytics, the left and right arrow keys change the day, and `Esc` returns to the timer. The editor accepts project names and local timestamps in `YYYY-MM-DD HH:MM[:SS]` format. Duration is recalculated from the edited start and end times.
 
-Settings and first-run setup share the same preferences: clock format, timer font, timer color, ring style, ring concept, and whether a new session can reuse the last project. Settings also lists the timer keys. On that screen, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back.
+Settings and first-run setup share the same preferences: clock format, timer font, timer color, ring style, ring concept, whether a new session can reuse the last project, and a timer animation (none, pulse, digit flash, colon blink, roll, entrance, minute flash). Settings also lists the timer keys and shows a short description of the selected animation. On that screen, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back.
 
 ## Activity
 

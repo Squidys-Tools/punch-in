@@ -81,7 +81,7 @@ try {
     installDir,
     cliEnvironment,
   );
-  if (versionOutput !== `${packageName} ${packageVersion}`) {
+  if (versionOutput !== `punch ${packageVersion}`) {
     throw new Error(`Unexpected installed version output: ${versionOutput}`);
   }
 
@@ -96,7 +96,7 @@ try {
   }
 
   const readme = readFileSync(path.join(projectDir, 'README.md'), 'utf8');
-  if (!readme.includes('npm uninstall --global punch')) {
+  if (!readme.includes('npm uninstall --global punch-in')) {
     throw new Error('README.md is missing the npm uninstall command');
   }
 

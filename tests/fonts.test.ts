@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, timerFontHeight, timerRows } from '../src/fonts.js';
+import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, assembleRows, timerBlocks, timerFontHeight, timerRows } from '../src/fonts.js';
 
 describe('timer fonts', () => {
   test('each font reports the height of its rendered rows', () => {
@@ -33,5 +33,14 @@ describe('timer fonts', () => {
       sky: '#A7C7E7',
       lilac: '#C3B1E1',
     });
+  });
+
+  test('timer blocks expose digit and colon places for animation', () => {
+    const blocks = timerBlocks(3661, 'blocky');
+    expect(blocks.map((block) => block.kind)).toEqual([
+      'digit', 'digit', 'colon', 'digit', 'digit', 'colon', 'digit', 'digit',
+    ]);
+    expect(blocks.filter((block) => block.kind === 'digit').map((block) => block.value).join('')).toBe('010101');
+    expect(assembleRows(blocks)).toEqual(timerRows(3661, 'blocky'));
   });
 });

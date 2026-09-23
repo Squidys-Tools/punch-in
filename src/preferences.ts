@@ -4,6 +4,7 @@ import { quarantineCorruptFile, writeFileAtomic } from './fsio.js';
 import { dataFile } from './store.js';
 import { FONTS, TIMER_COLORS, type TimerColor, type TimerFont } from './fonts.js';
 import { RING_CONCEPTS, RING_STYLES, type RingConcept, type RingStyle } from './ring.js';
+import { isTimerAnimation, type TimerAnimation } from './timer-animation.js';
 
 export type ClockFormat = '12h' | '24h';
 
@@ -15,6 +16,7 @@ export interface Preferences {
   ringStyle: RingStyle;
   ringConcept: RingConcept;
   reuseLastProject: boolean;
+  animation: TimerAnimation;
 }
 
 export type PreferencesResult<T> =
@@ -29,6 +31,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   ringStyle: 'wide',
   ringConcept: 'day-dial',
   reuseLastProject: false,
+  animation: 'none',
 };
 
 export function preferencesFile(): string {
@@ -79,6 +82,7 @@ function normalize(value: Record<string, unknown>): Preferences {
     ringStyle: isIn(value.ringStyle, RING_STYLES) ? value.ringStyle : DEFAULT_PREFERENCES.ringStyle,
     ringConcept: isIn(value.ringConcept, RING_CONCEPTS) ? value.ringConcept : DEFAULT_PREFERENCES.ringConcept,
     reuseLastProject: typeof value.reuseLastProject === 'boolean' ? value.reuseLastProject : DEFAULT_PREFERENCES.reuseLastProject,
+    animation: isTimerAnimation(value.animation) ? value.animation : DEFAULT_PREFERENCES.animation,
   };
 }
 

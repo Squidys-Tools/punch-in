@@ -31,6 +31,7 @@ const outputDir = path.resolve(
 const version = packageMetadata.version;
 const expectedTag = `v${version}`;
 const releaseTag = process.env.GITHUB_REF_NAME;
+const productName = 'punch';
 
 const targets = [
   {
@@ -115,7 +116,7 @@ const artifacts: ReleaseArtifact[] = targets.map((target) => {
 });
 
 const manifest: ReleaseManifest = {
-  name: packageMetadata.name,
+  name: productName,
   version,
   artifacts,
 };
@@ -124,4 +125,4 @@ writeFileSync(
   `${JSON.stringify(manifest, null, 2)}\n`,
 );
 
-console.log(`Built ${artifacts.length} standalone ${packageMetadata.name}@${version} releases.`);
+console.log(`Built ${artifacts.length} standalone ${productName}@${version} releases.`);

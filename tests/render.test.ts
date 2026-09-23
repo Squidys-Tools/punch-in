@@ -129,11 +129,13 @@ describe('timer interactions', () => {
       await input.typeText('blog');
       await frameText(setup);
       await input.pressEnter();
-      const frame = await settledFrame(setup, 'TRACKING');
+      const frame = await settledFrame(setup, '▶ blog');
 
       expect(flat(frame)).toContain('blog');
       expect(flat(frame)).toContain('o stop');
-      expect(flat(frame)).toContain('TRACKING');
+      expect(flat(frame)).not.toContain('TRACKING');
+      expect(flat(frame)).not.toContain('started tracking');
+      expect(flat(frame)).toContain('▶');
     } finally {
       setup.renderer.destroy();
     }
@@ -279,6 +281,32 @@ describe('setup and settings', () => {
       const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
 
       expect(saved.color).toBe('pink');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('settings cycles timer animation and saves it', async () => {
+    const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      for (let i = 0; i < 6; i++) {
+        await input.pressArrow('down');
+        await frameText(setup);
+      }
+      const noneFrame = await settledFrame(setup, 'timer animation: none');
+      expect(flat(noneFrame)).toContain('timer animation: none');
+      expect(flat(noneFrame)).toContain('static digits');
+      await input.typeText(' ');
+      const pulseFrame = await settledFrame(setup, 'timer animation: pulse');
+      expect(flat(pulseFrame)).toContain('timer animation: pulse');
+      expect(flat(pulseFrame)).toContain('brightness pulse each second');
+      await input.pressEnter();
+      await frameText(setup);
+      const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
+
+      expect(saved.animation).toBe('pulse');
     } finally {
       setup.renderer.destroy();
     }

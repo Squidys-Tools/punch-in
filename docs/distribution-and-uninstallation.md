@@ -17,8 +17,10 @@ This document describes how Punch should reach users and how each installation m
 The primary package-manager install should be:
 
 ```sh
-npm install --global punch
+npm install --global punch-in
 ```
+
+The published package name is `punch-in` (the bare `punch` name is taken on npm). The package exposes the `punch` executable through `bin`.
 
 The published package should contain the built JavaScript entrypoint, production dependencies, and the files needed at runtime. It should not require users to run TypeScript directly.
 
@@ -29,7 +31,7 @@ This path also gives users `npx punch` and, where supported, `bunx punch`.
 Uninstallation belongs to npm:
 
 ```sh
-npm uninstall --global punch
+npm uninstall --global punch-in
 ```
 
 `punch uninstall` should detect that Punch came from npm and print this command rather than trying to remove files from inside the package.

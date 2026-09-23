@@ -68,7 +68,7 @@ export function uninstall(options: UninstallOptions = {}): UninstallResult {
       ? ` Removed data files: ${dataFiles.files.join(', ')}.`
       : ' Session data and preferences were preserved.';
     if (isNpmInstall()) {
-      return ok(`Punch is installed by npm. Run npm uninstall --global punch.${dataMessage}`);
+      return ok(`Punch is installed by npm. Run npm uninstall --global punch-in.${dataMessage}`);
     }
     return ok(`Punch is running from a source checkout. Remove the checkout manually.${dataMessage}`);
   }
