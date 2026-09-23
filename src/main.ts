@@ -45,14 +45,24 @@ function printResult(result: { ok: boolean; message: string }): void {
 
 async function runTui(initialScreen?: 'settings'): Promise<void> {
   const renderer = await createCliRenderer();
-  if (initialScreen) {
-    createRoot(renderer).render(React.createElement(App, { initialScreen }));
-  } else {
-    createRoot(renderer).render(React.createElement(App));
+  try {
+    const root = createRoot(renderer);
+    try {
+      if (initialScreen) {
+        root.render(React.createElement(App, { initialScreen }));
+      } else {
+        root.render(React.createElement(App));
+      }
+      await new Promise<void>((resolve) => {
+        if (renderer.isDestroyed) resolve();
+        else renderer.once('destroy', () => resolve());
+      });
+    } finally {
+      root.unmount();
+    }
+  } finally {
+    if (!renderer.isDestroyed) renderer.destroy();
   }
-  await new Promise<void>((resolve) => {
-    renderer.once('destroy', () => resolve());
-  });
 }
 
 async function main(): Promise<void> {
