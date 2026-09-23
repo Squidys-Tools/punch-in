@@ -91,7 +91,11 @@ describe('timer interactions', () => {
       const frame = await settledFrame(setup, 'a activity');
 
       expect(flat(frame)).toContain('a activity');
-      expect(flat(frame)).toContain('? help');
+      expect(flat(frame)).not.toContain('? help');
+      expect(flat(frame)).not.toContain('t font');
+      expect(flat(frame)).not.toContain('r ring');
+      expect(flat(frame)).not.toContain('c concept');
+      expect(flat(frame)).toContain('s settings');
       expect(flat(frame)).toContain('i start');
       expect(flat(frame)).toContain('q quit');
       expect(flat(frame)).not.toContain('design:');
@@ -185,7 +189,7 @@ describe('timer interactions', () => {
     }
   });
 
-  test('logged status does not leak into Help or Settings', async () => {
+  test('logged status does not leak into Settings', async () => {
     const setup = await testRender(React.createElement(App), RENDER_SIZE);
     try {
       const input = createInput(setup);
@@ -200,11 +204,6 @@ describe('timer interactions', () => {
       await frameText(setup);
       await input.pressEnter();
       await settledFrame(setup, 'Logged');
-      await input.typeText('?');
-      const helpFrame = await frameText(setup);
-      expect(flat(helpFrame)).not.toContain('Logged');
-      await input.pressEscape();
-      await frameText(setup);
       await input.typeText('s');
       const frame = await settledFrame(setup, 'SETTINGS');
 
@@ -247,6 +246,8 @@ describe('setup and settings', () => {
       const settingsFrame = await settledFrame(setup, 'SETTINGS');
       expect(flat(settingsFrame)).toContain('SETTINGS');
       expect(flat(settingsFrame)).toContain('Space change');
+      expect(flat(settingsFrame)).toContain('keys · i start');
+      expect(flat(settingsFrame)).toContain('t/r/c style');
 
       await input.typeText(' ');
       await frameText(setup);
@@ -301,23 +302,23 @@ describe('setup and settings', () => {
   });
 });
 
-describe('help and activity', () => {
-  test('Help opens as a read-only overlay and Esc returns to the timer', async () => {
+describe('activity', () => {
+  test('? opens Settings with the key list and Esc returns to the timer', async () => {
     const setup = await testRender(React.createElement(App), RENDER_SIZE);
     try {
       const input = createInput(setup);
       await frameText(setup);
       await input.typeText('?');
-      const helpFrame = await settledFrame(setup, 'HELP');
-      expect(flat(helpFrame)).toContain('HELP');
-      expect(flat(helpFrame)).toContain('a open Activity');
-      expect(flat(helpFrame)).toContain('Esc close');
-      expect(helpFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
+      const settingsFrame = await settledFrame(setup, 'SETTINGS');
+      expect(flat(settingsFrame)).toContain('SETTINGS');
+      expect(flat(settingsFrame)).toContain('keys · i start');
+      expect(flat(settingsFrame)).toContain('Esc cancel');
+      expect(settingsFrame.split('\n').findIndex((line) => line.trim().length > 0)).toBeGreaterThan(0);
       await input.pressEscape();
       const frame = await settledFrame(setup, 'ready when you are');
 
       expect(flat(frame)).toContain('ready when you are');
-      expect(flat(frame)).not.toContain('HELP');
+      expect(flat(frame)).not.toContain('SETTINGS');
     } finally {
       setup.renderer.destroy();
     }
@@ -548,29 +549,31 @@ describe('optional project reuse', () => {
 });
 
 describe('feature parity with documented controls', () => {
-  test('t, r, and c cycle font, ring style, and concept from the timer', async () => {
+  test('t, r, and c cycle font, ring style, and concept without advertising them in the footer', async () => {
     const setup = await testRender(React.createElement(App), RENDER_SIZE);
     try {
       const input = createInput(setup);
-      const idle = await settledFrame(setup, 't font (blocky)');
-      expect(flat(idle)).toContain('t font (blocky)');
-      expect(flat(idle)).toContain('r ring (wide)');
-      expect(flat(idle)).toContain('c concept (day-dial)');
+      const idle = await settledFrame(setup, 'ready when you are');
+      expect(flat(idle)).toContain('s settings');
+      expect(flat(idle)).not.toContain('t font');
+      expect(flat(idle)).not.toContain('r ring');
+      expect(flat(idle)).not.toContain('c concept');
+      expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).font).toBe('blocky');
 
       await input.typeText('t');
-      const fontFrame = await settledFrame(setup, 't font (digital)');
-      expect(flat(fontFrame)).toContain('t font (digital)');
+      await settledFrame(setup, 'ready when you are');
       expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).font).toBe('digital');
 
       await input.typeText('r');
-      const ringFrame = await settledFrame(setup, 'r ring (narrow)');
-      expect(flat(ringFrame)).toContain('r ring (narrow)');
+      await settledFrame(setup, 'ready when you are');
       expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).ringStyle).toBe('narrow');
 
       await input.typeText('c');
-      const conceptFrame = await settledFrame(setup, 'c concept (day-left)');
-      expect(flat(conceptFrame)).toContain('c concept (day-left)');
+      const frame = await settledFrame(setup, 'ready when you are');
       expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).ringConcept).toBe('day-left');
+      expect(flat(frame)).not.toContain('t font');
+      expect(flat(frame)).not.toContain('r ring');
+      expect(flat(frame)).not.toContain('c concept');
     } finally {
       setup.renderer.destroy();
     }

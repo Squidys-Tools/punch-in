@@ -110,17 +110,16 @@ From the main screen:
 i       Start a session and enter a project name
 o       Ask for confirmation, then stop the active session
 a       Open Activity
-s       Open Settings
-t       Cycle timer fonts
-r       Cycle ring styles
-c       Cycle ring concepts
-?       Show help
+s       Open Settings (? also opens Settings)
+t       Cycle timer fonts (not shown in the footer)
+r       Cycle ring styles (not shown in the footer)
+c       Cycle ring concepts (not shown in the footer)
 q       Quit
 ```
 
 In Activity, the up and down arrow keys select a completed session, `Enter` edits it, `Tab` switches between Sessions and Analytics, the left and right arrow keys change the day, and `Esc` returns to the timer. The editor accepts project names and local timestamps in `YYYY-MM-DD HH:MM[:SS]` format. Duration is recalculated from the edited start and end times.
 
-In Settings and first-run setup, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back. Settings include the clock format, timer font, ring style, ring concept, and whether a new session can reuse the last project.
+Settings and first-run setup share the same preferences: clock format, timer font, timer color, ring style, ring concept, and whether a new session can reuse the last project. Settings also lists the timer keys. On that screen, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back.
 
 ## Activity
 

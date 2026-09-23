@@ -17,7 +17,7 @@ export type InitialScreen = 'timer' | 'settings';
 export type { TimerFont } from './fonts.js';
 export type { RingConcept, RingStyle } from './ring.js';
 type Mode = 'normal' | 'input' | 'stop-confirm';
-type Screen = 'timer' | 'setup' | 'settings' | 'help' | 'activity' | 'edit-session';
+type Screen = 'timer' | 'setup' | 'settings' | 'activity' | 'edit-session';
 type ActivityTab = 'sessions' | 'analytics';
 type VisualFocus = 0 | 1 | 2 | 3;
 type EditStep = 0 | 1 | 2;
@@ -154,12 +154,11 @@ function Header({ preferences }: { preferences: Preferences }) {
   );
 }
 
-function Footer({ mode, input, status, store, preferences }: { mode: Mode; input: string; status: StatusMsg | null; store: Store; preferences: Preferences }) {
-  let help = 'a activity · s settings · ? help · i start · q quit';
-  if (store.active) help = 'a activity · s settings · ? help · o stop · q quit';
+function Footer({ mode, input, status, store }: { mode: Mode; input: string; status: StatusMsg | null; store: Store }) {
+  let help = 'a activity · s settings · i start · q quit';
+  if (store.active) help = 'a activity · s settings · o stop · q quit';
   if (mode === 'input') help = 'enter confirm · esc cancel';
   if (mode === 'stop-confirm') help = 'enter confirm · esc cancel';
-  if (mode === 'normal') help += ` · t font (${preferences.font}) · r ring (${preferences.ringStyle}) · c concept (${preferences.ringConcept})`;
   return (
     <box style={{ flexDirection: 'column', paddingLeft: 1, paddingRight: 1 }}>
       <text fg={status ? (status.isError ? 'red' : 'green') : undefined}>{status?.text ?? ' '}</text>
@@ -249,6 +248,7 @@ function SettingsScreen({ preferences, focus, status }: { preferences: Preferenc
           </text>
         ))}
         <text>{' '}</text>
+        <text fg="gray">keys · i start · o stop · a activity · t/r/c style · q quit</text>
         <text fg="gray">↑↓ move · Space change · Enter save · Esc cancel</text>
       </box>
     </CenteredScreen>
@@ -355,26 +355,6 @@ function EditSessionScreen({ values, step, input, status }: { values: EditValues
   );
 }
 
-function HelpScreen() {
-  return (
-    <CenteredScreen>
-      <box style={{ flexDirection: 'column', alignItems: 'center' }}>
-        <text fg="cyan"><b>HELP</b></text>
-        <text>{' '}</text>
-        <text><span fg="yellow">i</span> start a session</text>
-        <text><span fg="yellow">o</span> stop the active session</text>
-        <text><span fg="yellow">a</span> open Activity</text>
-        <text><span fg="yellow">s</span> open Settings</text>
-        <text><span fg="yellow">?</span> open this help</text>
-        <text><span fg="yellow">q</span> quit</text>
-        <text>{' '}</text>
-        <text fg="gray">In Activity, select a session and press Enter to edit</text>
-        <text fg="gray">Esc close</text>
-      </box>
-    </CenteredScreen>
-  );
-}
-
 export interface ShellProps {
   store: Store;
   preferences: Preferences;
@@ -392,7 +372,7 @@ export function Shell({ store, preferences, mode, input, status }: ShellProps) {
       <box style={{ flexGrow: 1, flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
         <TimerBody store={store} preferences={preferences} compact={compact} />
       </box>
-      <Footer mode={mode} input={input} status={status} store={store} preferences={preferences} />
+      <Footer mode={mode} input={input} status={status} store={store} />
     </box>
   );
 }
@@ -610,10 +590,6 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       else if (isEscape) { setDraftPreferences(preferences); setScreen('timer'); }
       return;
     }
-    if (screen === 'help') {
-      if (isEscape) setScreen('timer');
-      return;
-    }
     if (screen === 'activity') {
       if (isEscape) setScreen('timer');
       else if (isTab) setActivityTab((value) => value === 'sessions' ? 'analytics' : 'sessions');
@@ -665,14 +641,13 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     else if (keyInput === 't') saveQuickPreference({ ...preferences, font: cycle(FONTS, preferences.font) });
     else if (keyInput === 'r') saveQuickPreference({ ...preferences, ringStyle: cycle(RING_STYLES, preferences.ringStyle) });
     else if (keyInput === 'c') saveQuickPreference({ ...preferences, ringConcept: cycle(RING_CONCEPTS, preferences.ringConcept) });
-    else if (keyInput === '?') { setStatus(null); setScreen('help'); }
+    else if (keyInput === '?') { setStatus(null); setDraftPreferences(preferences); setScreen('settings'); }
     else if (keyInput === 'a') { setStatus(null); setActivityDate(new Date()); setActivityTab('sessions'); setActivitySelection(0); setScreen('activity'); }
     else if (keyInput === 's') { setStatus(null); setDraftPreferences(preferences); setScreen('settings'); }
   });
 
   if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} status={status} />;
   if (screen === 'settings') return <SettingsScreen preferences={draftPreferences} focus={settingsFocus} status={status} />;
-  if (screen === 'help') return <HelpScreen />;
   if (screen === 'activity') return <ActivityScreen store={store} preferences={preferences} date={activityDate} tab={activityTab} selectedIndex={activitySelection} />;
   if (screen === 'edit-session' && editValues) return <EditSessionScreen values={editValues} step={editStep} input={editInput} status={status} />;
   return <Shell store={store} preferences={preferences} mode={mode} input={input} status={status} />;
