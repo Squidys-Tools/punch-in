@@ -10,7 +10,7 @@ import {
   type Preferences,
   loadPreferences,
 } from './preferences.js';
-import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, gradientColor, timerBlocks, timerFontHeight, type TimerColor, type TimerFont } from './fonts.js';
+import { FONTS, TIMER_COLORS, accentColor, gradientColor, timerBlocks, timerFontHeight, type TimerColor, type TimerFont } from './fonts.js';
 import { RING_CONCEPTS, RING_STYLES, ringData, ringGrid, ringHeight, type Cell, type RingConcept, type RingStyle } from './ring.js';
 import {
   TIMER_ANIMATIONS,
@@ -101,16 +101,18 @@ function TimerGlyphs({
   active,
   font,
   color,
+  accent,
   animation,
 }: {
   active: Active | null;
   font: TimerFont;
   color: TimerColor;
+  accent: string;
   animation: TimerAnimation;
 }) {
   const secs = active ? elapsedSeconds(active) : 0;
   const now = Date.now();
-  const glyphColor = color !== 'gray' ? TIMER_COLOR_HEX[color] : active ? 'green' : 'gray';
+  const glyphColor = color !== 'gray' ? accent : active ? 'green' : 'gray';
   const motion = active !== null && animation !== 'none';
   const stateRef = React.useRef(createAnimationState(animation));
   const state = stateRef.current;
@@ -210,11 +212,11 @@ function TimerGlyphs({
   );
 }
 
-function RingRow({ cells }: { cells: Cell[] }) {
+function RingRow({ cells, accent }: { cells: Cell[]; accent: string }) {
   return (
     <text>
       {cells.map((cell, index) => {
-        const fg = cell.cat === 0 ? 'cyan' : cell.cat === -1 ? 'gray' : undefined;
+        const fg = cell.cat === 0 ? accent : cell.cat === -1 ? 'gray' : undefined;
         return cell.cat === 0 ? (
           <b key={index}><span fg={fg}>{cell.ch}</span></b>
         ) : (
@@ -225,27 +227,27 @@ function RingRow({ cells }: { cells: Cell[] }) {
   );
 }
 
-function TimerBody({ store, preferences, compact }: { store: Store; preferences: Preferences; compact: boolean }) {
+function TimerBody({ store, preferences, compact, accent }: { store: Store; preferences: Preferences; compact: boolean; accent: string }) {
   const active = store.active;
   const data = ringData(store, preferences.ringConcept);
   return (
     <box style={{ flexDirection: 'column', alignItems: 'center' }}>
-      <TimerGlyphs active={active} font={preferences.font} color={preferences.color} animation={preferences.animation} />
+      <TimerGlyphs active={active} font={preferences.font} color={preferences.color} accent={accent} animation={preferences.animation} />
       {active ? (
         <>
-          <text fg="cyan"><b>▶ {active.project}</b></text>
+          <text fg={accent}><b>▶ {active.project}</b></text>
           {!compact && <text fg="gray">started {formatTime(active.started_at, preferences.clockFormat, true)}</text>}
         </>
       ) : (
         <>
           <text fg="gray">ready when you are</text>
-          <text fg="cyan">press i to start</text>
+          <text fg={accent}>press i to start</text>
         </>
       )}
       {!compact && preferences.ringStyle !== 'none' && (
         <>
           <text>{' '}</text>
-          {ringGrid(preferences.ringStyle, data).map((row, index) => <RingRow key={index} cells={row} />)}
+          {ringGrid(preferences.ringStyle, data).map((row, index) => <RingRow key={index} cells={row} accent={accent} />)}
           <text fg="gray">{data.label}</text>
         </>
       )}
@@ -253,15 +255,15 @@ function TimerBody({ store, preferences, compact }: { store: Store; preferences:
   );
 }
 
-function Header({ preferences }: { preferences: Preferences }) {
+function Header({ preferences, accent }: { preferences: Preferences; accent: string }) {
   return (
     <box style={{ paddingLeft: 1, paddingRight: 1 }}>
-      <text><span fg="cyan"><b>PUNCH IN</b></span><span>{`  ·  ${formatClock(new Date(), preferences.clockFormat)}`}</span></text>
+      <text><span fg={accent}><b>PUNCH IN</b></span><span>{`  ·  ${formatClock(new Date(), preferences.clockFormat)}`}</span></text>
     </box>
   );
 }
 
-function Footer({ mode, input, status, store }: { mode: Mode; input: string; status: StatusMsg | null; store: Store }) {
+function Footer({ mode, input, status, store, accent }: { mode: Mode; input: string; status: StatusMsg | null; store: Store; accent: string }) {
   let help = 'a activity · s settings · i start · q quit';
   if (store.active) help = 'a activity · s settings · o stop · q quit';
   if (mode === 'input') help = 'enter confirm · esc cancel';
@@ -269,7 +271,7 @@ function Footer({ mode, input, status, store }: { mode: Mode; input: string; sta
   return (
     <box style={{ flexDirection: 'column', paddingLeft: 1, paddingRight: 1 }}>
       <text fg={status ? (status.isError ? 'red' : 'green') : undefined}>{status?.text ?? ' '}</text>
-      {mode === 'input' && <text><span fg="cyan"><b>project name: </b></span><span fg="white">{input}▌</span></text>}
+      {mode === 'input' && <text><span fg={accent}><b>project name: </b></span><span fg="white">{input}▌</span></text>}
       {mode === 'stop-confirm' && <text fg="yellow"><b>stop tracking this session? Enter confirm · Esc cancel</b></text>}
       {mode === 'normal' && <text>{' '}</text>}
       <text fg="gray">{help}</text>
@@ -294,12 +296,12 @@ function setupValue(preferences: Preferences, step: number, focus: VisualFocus):
   return preferences.ringConcept;
 }
 
-function SetupScreen({ preferences, step, focus, status }: { preferences: Preferences; step: number; focus: VisualFocus; status: StatusMsg | null }) {
+function SetupScreen({ preferences, step, focus, status, accent }: { preferences: Preferences; step: number; focus: VisualFocus; status: StatusMsg | null; accent: string }) {
   const title = step === 0 ? 'CLOCK FORMAT' : step === 1 ? 'VISUAL STYLE' : 'STARTING SESSIONS';
   return (
     <CenteredScreen>
       <box style={{ flexDirection: 'column', alignItems: 'center' }}>
-        <text fg="cyan"><b>WELCOME TO PUNCH</b></text>
+        <text fg={accent}><b>WELCOME TO PUNCH</b></text>
         <text fg="gray">make the timer feel like yours · step {step + 1} of 3</text>
         <text>{' '}</text>
         <text fg="magenta"><b>{title}</b></text>
@@ -308,7 +310,7 @@ function SetupScreen({ preferences, step, focus, status }: { preferences: Prefer
         {step === 1 && (
           <>
             <text fg={focus === 0 ? 'yellow' : 'gray'}>{focus === 0 ? '›' : ' '} font: {preferences.font}</text>
-            <text fg={focus === 1 ? 'yellow' : 'gray'}>{focus === 1 ? '›' : ' '} color: {preferences.color}</text>
+            <text fg={focus === 1 ? 'yellow' : 'gray'}>{focus === 1 ? '›' : ' '} accent: {preferences.color}</text>
             <text fg={focus === 2 ? 'yellow' : 'gray'}>{focus === 2 ? '›' : ' '} ring: {preferences.ringStyle}</text>
             <text fg={focus === 3 ? 'yellow' : 'gray'}>{focus === 3 ? '›' : ' '} concept: {preferences.ringConcept}</text>
           </>
@@ -343,7 +345,7 @@ function settingLabel(key: SettingKey): string {
   switch (key) {
     case 'clockFormat': return 'clock format';
     case 'font': return 'timer font';
-    case 'color': return 'timer color';
+    case 'color': return 'accent color';
     case 'ringStyle': return 'ring style';
     case 'ringConcept': return 'ring concept';
     case 'reuseLastProject': return 'reuse last project';
@@ -358,11 +360,11 @@ function settingValue(preferences: Preferences, key: SettingKey): string {
   return preferences[key];
 }
 
-function SettingsScreen({ preferences, focus, status }: { preferences: Preferences; focus: number; status: StatusMsg | null }) {
+function SettingsScreen({ preferences, focus, status, accent }: { preferences: Preferences; focus: number; status: StatusMsg | null; accent: string }) {
   return (
     <CenteredScreen>
       <box style={{ flexDirection: 'column', alignItems: 'center' }}>
-        <text fg="cyan"><b>SETTINGS</b></text>
+        <text fg={accent}><b>SETTINGS</b></text>
         <text fg="gray">customize the timer · changes are saved together</text>
         {status && <text fg="red">{status.text}</text>}
         <text>{' '}</text>
@@ -408,11 +410,11 @@ function ActivitySessions({ summary, preferences, active, selectedIndex }: { sum
   );
 }
 
-function ActivityAnalytics({ summary }: { summary: ActivitySummary }) {
+function ActivityAnalytics({ summary, accent }: { summary: ActivitySummary; accent: string }) {
   const bars = Array.from({ length: 9 }, (_, index) => {
     const hour = index + 8;
     const count = summary.sessions.filter((session) => session.started_at.getHours() === hour).length;
-    return <span key={hour} fg={count ? 'cyan' : 'gray'}>{count ? '██' : '··'}</span>;
+    return <span key={hour} fg={count ? accent : 'gray'}>{count ? '██' : '··'}</span>;
   });
   return (
     <>
@@ -436,15 +438,15 @@ function CenteredScreen({ children }: { children: React.ReactNode }) {
   return <box style={{ height, width: '100%', justifyContent: 'center', alignItems: 'center' }}>{children}</box>;
 }
 
-function ActivityScreen({ store, preferences, date, tab, selectedIndex }: { store: Store; preferences: Preferences; date: Date; tab: ActivityTab; selectedIndex: number }) {
+function ActivityScreen({ store, preferences, date, tab, selectedIndex, accent }: { store: Store; preferences: Preferences; date: Date; tab: ActivityTab; selectedIndex: number; accent: string }) {
   const summary = activityForDay(store.history, date);
   return (
     <CenteredScreen>
       <box style={{ flexDirection: 'column', alignItems: 'center' }}>
-        <text fg="cyan"><b>ACTIVITY · {tab === 'sessions' ? 'SESSIONS' : 'ANALYTICS'}</b></text>
+        <text fg={accent}><b>ACTIVITY · {tab === 'sessions' ? 'SESSIONS' : 'ANALYTICS'}</b></text>
         <text fg="magenta"><b>{dateHeading(date)}</b></text>
         <text>{' '}</text>
-        {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active && isSameDay(store.active.started_at, date) ? store.active : null} selectedIndex={selectedIndex} /> : <ActivityAnalytics summary={summary} />}
+        {tab === 'sessions' ? <ActivitySessions summary={summary} preferences={preferences} active={store.active && isSameDay(store.active.started_at, date) ? store.active : null} selectedIndex={selectedIndex} /> : <ActivityAnalytics summary={summary} accent={accent} />}
         <text>{' '}</text>
         <text fg="gray">{tab === 'sessions' && summary.sessions.length > 0 ? '↑↓ select · Enter edit · ' : ''}Tab {tab === 'sessions' ? 'analytics' : 'sessions'} · ←→ day · Esc back</text>
       </box>
@@ -458,13 +460,13 @@ interface EditValues {
   endedAt: Date;
 }
 
-function EditSessionScreen({ values, step, input, status }: { values: EditValues; step: EditStep; input: string; status: StatusMsg | null }) {
+function EditSessionScreen({ values, step, input, status, accent }: { values: EditValues; step: EditStep; input: string; status: StatusMsg | null; accent: string }) {
   const duration = Math.max(0, Math.floor((values.endedAt.getTime() - values.startedAt.getTime()) / 1000));
   const value = (field: EditStep, text: string) => <span fg={step === field ? 'white' : undefined}>{step === field ? `${text}▌` : text}</span>;
   return (
     <CenteredScreen>
       <box style={{ flexDirection: 'column', alignItems: 'center' }}>
-        <text fg="cyan"><b>EDIT TIME ENTRY</b></text>
+        <text fg={accent}><b>EDIT TIME ENTRY</b></text>
         <text fg="gray">change the project or time · step {step + 1} of 3</text>
         {status && <text fg="red">{status.text}</text>}
         <text>{' '}</text>
@@ -491,13 +493,14 @@ export interface ShellProps {
 export function Shell({ store, preferences, mode, input, status }: ShellProps) {
   const { width, height } = useTerminalDimensions();
   const compact = isCompactViewport(height, width);
+  const accent = accentColor(preferences.color);
   return (
     <box style={{ flexDirection: 'column', height, width: '100%' }}>
-      <Header preferences={preferences} />
+      <Header preferences={preferences} accent={accent} />
       <box style={{ flexGrow: 1, flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-        <TimerBody store={store} preferences={preferences} compact={compact} />
+        <TimerBody store={store} preferences={preferences} compact={compact} accent={accent} />
       </box>
-      <Footer mode={mode} input={input} status={status} store={store} />
+      <Footer mode={mode} input={input} status={status} store={store} accent={accent} />
     </box>
   );
 }
@@ -775,9 +778,9 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     else if (keyInput === 's') { setStatus(null); setDraftPreferences(preferences); setScreen('settings'); }
   });
 
-  if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} status={status} />;
-  if (screen === 'settings') return <SettingsScreen preferences={draftPreferences} focus={settingsFocus} status={status} />;
-  if (screen === 'activity') return <ActivityScreen store={store} preferences={preferences} date={activityDate} tab={activityTab} selectedIndex={activitySelection} />;
-  if (screen === 'edit-session' && editValues) return <EditSessionScreen values={editValues} step={editStep} input={editInput} status={status} />;
+  if (screen === 'setup') return <SetupScreen preferences={draftPreferences} step={setupStep} focus={visualFocus} status={status} accent={accentColor(draftPreferences.color)} />;
+  if (screen === 'settings') return <SettingsScreen preferences={draftPreferences} focus={settingsFocus} status={status} accent={accentColor(draftPreferences.color)} />;
+  if (screen === 'activity') return <ActivityScreen store={store} preferences={preferences} date={activityDate} tab={activityTab} selectedIndex={activitySelection} accent={accentColor(preferences.color)} />;
+  if (screen === 'edit-session' && editValues) return <EditSessionScreen values={editValues} step={editStep} input={editInput} status={status} accent={accentColor(preferences.color)} />;
   return <Shell store={store} preferences={preferences} mode={mode} input={input} status={status} />;
 };

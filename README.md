@@ -125,7 +125,7 @@ q       Quit
 
 In Activity, the up and down arrow keys select a completed session, `Enter` edits it, `Tab` switches between Sessions and Analytics, the left and right arrow keys change the day, and `Esc` returns to the timer. The editor accepts project names and local timestamps in `YYYY-MM-DD HH:MM[:SS]` format. Duration is recalculated from the edited start and end times.
 
-Settings and first-run setup share the same preferences: clock format, timer font, timer color, ring style, ring concept, whether a new session can reuse the last project, and a timer animation (none, digit flash, or colon blink). Settings also lists the timer keys and shows a short description of the selected animation. On that screen, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back.
+Settings and first-run setup share the same preferences: clock format, timer font, accent color, ring style, ring concept, whether a new session can reuse the last project, and a timer animation (none, digit flash, or colon blink). The accent color applies to the timer, progress ring, headings, and interactive highlights. Settings also lists the timer keys and shows a short description of the selected animation. On that screen, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back.
 
 ## Activity
 

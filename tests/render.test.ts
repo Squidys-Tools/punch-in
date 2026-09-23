@@ -263,7 +263,7 @@ describe('setup and settings', () => {
     }
   });
 
-  test('settings cycles and saves timer colors', async () => {
+  test('settings cycles and saves accent colors', async () => {
     const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
     try {
       const input = createInput(setup);
@@ -271,11 +271,11 @@ describe('setup and settings', () => {
       await input.pressArrow('down');
       await frameText(setup);
       await input.pressArrow('down');
-      const grayFrame = await settledFrame(setup, 'timer color: gray');
-      expect(flat(grayFrame)).toContain('timer color: gray');
-      await input.typeText(' ');
-      const pinkFrame = await settledFrame(setup, 'timer color: pink');
-      expect(flat(pinkFrame)).toContain('timer color: pink');
+       const grayFrame = await settledFrame(setup, 'accent color: gray');
+       expect(flat(grayFrame)).toContain('accent color: gray');
+       await input.typeText(' ');
+       const pinkFrame = await settledFrame(setup, 'accent color: pink');
+       expect(flat(pinkFrame)).toContain('accent color: pink');
       await input.pressEnter();
       await frameText(setup);
       const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));

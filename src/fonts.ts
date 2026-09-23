@@ -34,6 +34,15 @@ export const TIMER_COLOR_HEX: Record<Exclude<TimerColor, 'gray'>, string> = {
   lilac: '#C3B1E1',
 };
 
+export const ACCENT_COLOR_HEX: Record<TimerColor, string> = {
+  gray: '#00FFFF',
+  ...TIMER_COLOR_HEX,
+};
+
+export function accentColor(color: TimerColor): string {
+  return ACCENT_COLOR_HEX[color];
+}
+
 function hmsParts(secs: number): string[] {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
