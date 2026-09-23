@@ -546,3 +546,232 @@ describe('optional project reuse', () => {
     }
   });
 });
+
+describe('feature parity with documented controls', () => {
+  test('t, r, and c cycle font, ring style, and concept from the timer', async () => {
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      const idle = await settledFrame(setup, 't font (blocky)');
+      expect(flat(idle)).toContain('t font (blocky)');
+      expect(flat(idle)).toContain('r ring (wide)');
+      expect(flat(idle)).toContain('c concept (day-dial)');
+
+      await input.typeText('t');
+      const fontFrame = await settledFrame(setup, 't font (digital)');
+      expect(flat(fontFrame)).toContain('t font (digital)');
+      expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).font).toBe('digital');
+
+      await input.typeText('r');
+      const ringFrame = await settledFrame(setup, 'r ring (narrow)');
+      expect(flat(ringFrame)).toContain('r ring (narrow)');
+      expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).ringStyle).toBe('narrow');
+
+      await input.typeText('c');
+      const conceptFrame = await settledFrame(setup, 'c concept (day-left)');
+      expect(flat(conceptFrame)).toContain('c concept (day-left)');
+      expect(JSON.parse(readFileSync(preferencesFile, 'utf8')).ringConcept).toBe('day-left');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('q destroys the renderer to quit', async () => {
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('q');
+      expect(setup.renderer.isDestroyed).toBe(true);
+    } finally {
+      if (!setup.renderer.isDestroyed) setup.renderer.destroy();
+    }
+  });
+
+  test('compact viewport hides the ring without losing the timer', async () => {
+    const compact = await testRender(React.createElement(App), { width: 50, height: 16 });
+    try {
+      const frame = await settledFrame(compact, 'ready when you are');
+      expect(flat(frame)).toContain('ready when you are');
+      expect(flat(frame)).toContain('press i to start');
+      expect(flat(frame)).not.toContain('of the day passed');
+      expect(flat(frame)).not.toContain('of the day remaining');
+    } finally {
+      compact.renderer.destroy();
+    }
+
+    const full = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const frame = await settledFrame(full, 'of the day');
+      expect(flat(frame)).toMatch(/of the day (passed|remaining)/);
+    } finally {
+      full.renderer.destroy();
+    }
+  });
+});
+
+describe('activity navigation and session editing', () => {
+  function writeSession(project = 'Research'): void {
+    const now = new Date();
+    const started = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0);
+    writeFileSync(dataFile, JSON.stringify({
+      active: null,
+      history: [{
+        project,
+        started_at: started,
+        ended_at: new Date(started.getTime() + 45 * 60 * 1000),
+        duration_secs: 45 * 60,
+      }],
+    }), 'utf8');
+  }
+
+  function dateHeadingOf(date: Date): string {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${days[date.getDay()]} ${months[date.getMonth()]} ${String(date.getDate()).padStart(2, ' ')}, ${date.getFullYear()}`;
+  }
+
+  test('right arrow advances the activity day', async () => {
+    writeSession();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      const todayFrame = await settledFrame(setup, dateHeadingOf(new Date()));
+      expect(flat(todayFrame)).toContain(dateHeadingOf(new Date()));
+
+      await input.pressArrow('right');
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const frame = await settledFrame(setup, dateHeadingOf(tomorrow));
+
+      expect(flat(frame)).toContain(dateHeadingOf(tomorrow));
+      expect(flat(frame)).not.toContain('Research');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('e opens the session editor as an Enter alias', async () => {
+    writeSession();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      await settledFrame(setup, 'ACTIVITY');
+      await input.typeText('e');
+      const frame = await settledFrame(setup, 'EDIT TIME ENTRY');
+
+      expect(flat(frame)).toContain('EDIT TIME ENTRY');
+      expect(flat(frame)).toContain('project: Research');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('edit refuses a blank project name', async () => {
+    writeSession();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      await settledFrame(setup, 'ACTIVITY');
+      await input.pressEnter();
+      await settledFrame(setup, 'EDIT TIME ENTRY');
+      await input.pressKey('a', { ctrl: true });
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'Project name cannot be blank');
+
+      expect(flat(frame)).toContain('Project name cannot be blank');
+      expect(JSON.parse(readFileSync(dataFile, 'utf8')).history[0].project).toBe('Research');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('edit refuses a malformed timestamp', async () => {
+    writeSession();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      await settledFrame(setup, 'ACTIVITY');
+      await input.pressEnter();
+      await settledFrame(setup, 'EDIT TIME ENTRY');
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressKey('a', { ctrl: true });
+      await frameText(setup);
+      await input.typeText('not-a-time');
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'Use YYYY-MM-DD HH:MM[:SS]');
+
+      expect(flat(frame)).toContain('Use YYYY-MM-DD HH:MM[:SS]');
+      expect(flat(frame)).toContain('EDIT TIME ENTRY');
+      expect(JSON.parse(readFileSync(dataFile, 'utf8')).history[0].duration_secs).toBe(45 * 60);
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('edit refuses an end time before the start time', async () => {
+    writeSession();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      await settledFrame(setup, 'ACTIVITY');
+      await input.pressEnter();
+      await settledFrame(setup, 'EDIT TIME ENTRY');
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressEnter();
+      await frameText(setup);
+      await input.pressKey('a', { ctrl: true });
+      await frameText(setup);
+      await input.typeText('2000-01-01 00:00:00');
+      await frameText(setup);
+      await input.pressEnter();
+      const frame = await settledFrame(setup, 'end time must be on or after start time');
+
+      expect(flat(frame)).toContain('end time must be on or after start time');
+      const stored = JSON.parse(readFileSync(dataFile, 'utf8')).history[0];
+      expect(new Date(stored.ended_at).getDate()).toBe(new Date(stored.started_at).getDate());
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('Esc leaves the editor without writing changes', async () => {
+    writeSession();
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      await input.typeText('a');
+      await settledFrame(setup, 'ACTIVITY');
+      await input.pressEnter();
+      await settledFrame(setup, 'EDIT TIME ENTRY');
+      await input.pressKey('a', { ctrl: true });
+      await frameText(setup);
+      await input.typeText('Discarded');
+      await frameText(setup);
+      await input.pressEscape();
+      const frame = await settledFrame(setup, 'ACTIVITY');
+
+      expect(flat(frame)).toContain('ACTIVITY');
+      expect(flat(frame)).toContain('Research');
+      expect(flat(frame)).not.toContain('Discarded');
+      expect(JSON.parse(readFileSync(dataFile, 'utf8')).history[0].project).toBe('Research');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+});
