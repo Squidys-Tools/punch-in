@@ -4,12 +4,12 @@
 // grid of characters:
 //   - a block char like '█' marks a filled cell
 //   - a space ' ' marks an empty cell
-// All glyphs in one font must share the same number of rows. Digits are 3
-// chars wide in 'blocky' and 'digital'; 'pixel' stores 5x7 bitmaps ('1' = on).
+// All glyphs in one font must share the same number of rows. Blocky digits are
+// 4 chars wide; digital digits are 3 chars wide. Pixel stores 8x12 bitmaps.
 //
 // Examples of tweaks:
 //   - swap '█' for '▓' or '▀' to change the texture of the whole blocky font
-//   - edit a single digit, e.g. blockyDigits['7'][0] = '███' to widen the top
+//   - edit a single digit, e.g. blockyDigits['7'][0] = '█████' to widen the top
 //   - change the gradient ramp in defaultGradient (from/to are RGB 0-255)
 //
 // To add a new font: add a digit map, a case in timerRows() and a case in
@@ -50,20 +50,20 @@ function hmsParts(secs: number): string[] {
   return [String(h).padStart(2, '0'), String(m).padStart(2, '0'), String(s).padStart(2, '0')];
 }
 
-// ---------- blocky (5 rows x 3 cols) ----------
+// ---------- blocky (4 rows x 4 cols) ----------
 
 export const blockyDigits: Record<string, string[]> = {
-  '0': ['███', '█ █', '█ █', '█ █', '███'],
-  '1': [' █ ', '██ ', ' █ ', ' █ ', '███'],
-  '2': ['███', '  █', '███', '█  ', '███'],
-  '3': ['███', '  █', '███', '  █', '███'],
-  '4': ['█ █', '█ █', '███', '  █', '  █'],
-  '5': ['███', '█  ', '███', '  █', '███'],
-  '6': ['███', '█  ', '███', '█ █', '███'],
-  '7': ['███', '  █', '  █', '  █', '  █'],
-  '8': ['███', '█ █', '███', '█ █', '███'],
-  '9': ['███', '█ █', '███', '  █', '███'],
-  ':': ['   ', ' █ ', '   ', ' █ ', '   '],
+  '0': ['████', '█  █', '█  █', '████'],
+  '1': ['   █', '  ██', '   █', '████'],
+  '2': ['████', '   █', '██  ', '████'],
+  '3': ['████', '   █', '███ ', '   █'],
+  '4': ['█  █', '█  █', '████', '   █'],
+  '5': ['████', '█   ', '███ ', '   █'],
+  '6': ['███ ', '█   ', '█  █', '███ '],
+  '7': ['████', '   █', '  █ ', '  █ '],
+  '8': ['████', '█  █', '█  █', '████'],
+  '9': ['███ ', '█  █', '███ ', '   █'],
+  ':': ['    ', '  █ ', '    ', '  █ '],
 };
 
 // ---------- digital (3 rows x 3 cols, seven-segment) ----------
@@ -246,6 +246,6 @@ export function timerFontHeight(font: TimerFont): number {
     case 'blocky':
     case 'gradient':
     default:
-      return 5;
+      return 4;
   }
 }

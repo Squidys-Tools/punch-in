@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { FONTS, TIMER_COLORS, TIMER_COLOR_HEX, ACCENT_COLOR_HEX, accentColor, assembleRows, timerBlocks, timerFontHeight, timerRows } from '../src/fonts.js';
+import { ACCENT_COLOR_HEX, FONTS, TIMER_COLOR_HEX, TIMER_COLORS, accentColor, assembleRows, blockyDigits, timerBlocks, timerFontHeight, timerRows } from '../src/fonts.js';
 
 describe('timer fonts', () => {
   test('each font reports the height of its rendered rows', () => {
@@ -18,8 +18,10 @@ describe('timer fonts', () => {
     }
   });
 
-  test('pixel font is wider than the compact blocky font', () => {
-    expect(timerRows(3661, 'pixel')[0].length).toBeGreaterThan(timerRows(3661, 'blocky')[0].length);
+  test('blocky font uses a wider, shorter grid', () => {
+    expect(Object.values(blockyDigits).every((rows) =>
+      rows.length === 4 && rows.every((row) => row.length === 4),
+    )).toBe(true);
   });
 
   test('exposes the complete pastel timer palette', () => {
