@@ -64,4 +64,4 @@ Note on `--parallel`: Bun versions before 1.4.0 have a module-init race in the I
 
 ## Release flow
 
-Releases are tag-driven: push a `v*` tag matching `package.json` version, and GitHub Actions builds/verifies/uploads artifacts. Version bumps belong in `package.json` only. The npm package name is `punch-in` (the `punch` name is taken); the CLI bin stays `punch`. Nightly npm pre-releases publish from `.github/workflows/nightly-npm.yml` under the `nightly` dist-tag and require the `NPM_TOKEN` repo secret.
+Releases are tag-driven: push a `v*` tag matching `package.json` version, and GitHub Actions builds/verifies/uploads artifacts. Version bumps belong in `package.json` only. The npm package name is `punch-in` (the `punch` name is taken); the CLI bin stays `punch`. Pre-releases publish manually from `.github/workflows/pre-release-npm.yml` (`workflow_dispatch`) as `X.Y.Z-alpha.N` under the `alpha` dist-tag and require the `NPM_TOKEN` repo secret.

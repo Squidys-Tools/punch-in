@@ -26,10 +26,10 @@ npm uninstall --global punch-in
 
 npm removes the program but does not remove session history or preferences. Those files stay in the data paths described below.
 
-Nightly pre-releases are published under the `nightly` dist-tag:
+Pre-releases publish manually from the **Pre-release npm** workflow as `X.Y.Z-alpha.N` under the `alpha` dist-tag:
 
 ```sh
-npm install --global punch-in@nightly
+npm install --global punch-in@alpha
 ```
 
 For a standalone Windows install, run the PowerShell installer from the latest GitHub release:
