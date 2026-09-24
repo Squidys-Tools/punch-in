@@ -24,14 +24,15 @@ describe('compactLevel', () => {
   });
 
   test('pixel font needs less room', () => {
-    // pixel+smooth: fullH = 2+6+4 = 12, noRingH = 4, noStartedH = 3, timerH = 2
-    expect(level(16, 'pixel', 'wide')).toBe(0); // body 12
+    // pixel+smooth: fullH = 3+6+4 = 13, noRingH = 5, noStartedH = 4, timerH = 3
+    expect(level(17, 'pixel', 'wide')).toBe(0); // body 13
+    expect(level(16, 'pixel', 'wide')).toBe(1); // body 12
     expect(level(15, 'pixel', 'wide')).toBe(1); // body 11
     expect(level(12, 'pixel', 'wide')).toBe(1); // body 8
     expect(level(9, 'pixel', 'wide')).toBe(1); // body 5
-    expect(level(8, 'pixel', 'wide')).toBe(1); // body 4
-    expect(level(7, 'pixel', 'wide')).toBe(2); // body 3
-    expect(level(6, 'pixel', 'wide')).toBe(3); // body 2
+    expect(level(8, 'pixel', 'wide')).toBe(2); // body 4
+    expect(level(7, 'pixel', 'wide')).toBe(3); // body 3
+    expect(level(6, 'pixel', 'wide')).toBe(4); // body 2
     expect(level(5, 'pixel', 'wide')).toBe(4); // body 1
   });
 
