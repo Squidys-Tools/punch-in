@@ -1,0 +1,93 @@
+name: Pre-release npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.2.0-alpha.1). Leave empty for <package.json>-alpha.N'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pre-release-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: bun run audit
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Run tests with coverage
+        run: bun run test:coverage
+
+      - name: Set pre-release version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          base_version="$(jq -r .version package.json)"
+          if [ -n "${INPUT_VERSION}" ]; then
+            publish_version="${INPUT_VERSION}"
+          else
+            next_alpha=1
+            if published_json="$(npm view punch-in versions --json 2>/dev/null)"; then
+              max_alpha="$(printf '%s' "$published_json" | jq -r --arg base "$base_version" '
+                [ .[] | strings
+                  | select(test("^" + $base + "-alpha\\.[0-9]+$"))
+                  | split("-alpha.")[1]
+                  | tonumber
+                ] | max // empty
+              ')"
+              if [ -n "${max_alpha}" ]; then
+                next_alpha=$((max_alpha + 1))
+              fi
+            fi
+            publish_version="${base_version}-alpha.${next_alpha}"
+          fi
+
+          printf '%s\n' "$publish_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-alpha\.[0-9]+)$' \
+            || { echo "Invalid version '$publish_version' (expected X.Y.Z-alpha.N)" >&2; exit 1; }
+
+          jq --arg version "$publish_version" '.version = $version' package.json > package.json.tmp
+          mv package.json.tmp package.json
+          echo "PUBLISH_VERSION=${publish_version}" >> "$GITHUB_ENV"
+          echo "Publishing punch-in@${publish_version}"
+
+      - name: Verify npm package
+        run: bun run verify:package
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish pre-release to npm
+        run: npm publish --tag alpha --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

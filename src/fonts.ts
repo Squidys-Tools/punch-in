@@ -34,6 +34,15 @@ export const TIMER_COLOR_HEX: Record<Exclude<TimerColor, 'gray'>, string> = {
   lilac: '#C3B1E1',
 };
 
+export const ACCENT_COLOR_HEX: Record<TimerColor, string> = {
+  gray: '#00FFFF',
+  ...TIMER_COLOR_HEX,
+};
+
+export function accentColor(color: TimerColor): string {
+  return ACCENT_COLOR_HEX[color];
+}
+
 function hmsParts(secs: number): string[] {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
@@ -57,20 +66,6 @@ export const blockyDigits: Record<string, string[]> = {
   ':': ['   ', ' █ ', '   ', ' █ ', '   '],
 };
 
-function blockyRows(secs: number): string[] {
-  const out: string[] = Array.from({ length: 5 }, () => '');
-  hmsParts(secs).forEach((part, i) => {
-    for (const ch of part) {
-      const g = blockyDigits[ch] ?? ['   ', '   ', '   ', '   ', '   '];
-      for (let r = 0; r < 5; r++) out[r] += g[r] + ' ';
-    }
-    if (i < 2) {
-      for (let r = 0; r < 5; r++) out[r] += blockyDigits[':'][r] + ' ';
-    }
-  });
-  return out;
-}
-
 // ---------- digital (3 rows x 3 cols, seven-segment) ----------
 
 export const digitalDigits: Record<string, string[]> = {
@@ -86,20 +81,6 @@ export const digitalDigits: Record<string, string[]> = {
   '9': [' _ ', '|_|', ' _|'],
   ':': ['   ', ' . ', ' . '],
 };
-
-function digitalRows(secs: number): string[] {
-  const out: string[] = Array.from({ length: 3 }, () => '');
-  hmsParts(secs).forEach((part, i) => {
-    for (const ch of part) {
-      const g = digitalDigits[ch] ?? ['   ', '   ', '   '];
-      for (let r = 0; r < 3; r++) out[r] += g[r] + ' ';
-    }
-    if (i < 2) {
-      for (let r = 0; r < 3; r++) out[r] += digitalDigits[':'][r] + ' ';
-    }
-  });
-  return out;
-}
 
 // ---------- pixel (5x7 bitmaps rendered as braille, 3 cols x 2 rows) ----------
 
@@ -146,23 +127,6 @@ function pixToBraille(rows: string[]): string[] {
   return [top.join(''), bottom.join('')];
 }
 
-function pixelRows(secs: number): string[] {
-  const out: string[] = ['', ''];
-  hmsParts(secs).forEach((part, i) => {
-    for (const ch of part) {
-      const [t, b] = pixToBraille(pixelDigits[ch] ?? ['00000', '00000', '00000', '00000', '00000', '00000', '00000']);
-      out[0] += t + ' ';
-      out[1] += b + ' ';
-    }
-    if (i < 2) {
-      const [t, b] = pixToBraille(pixelDigits[':']);
-      out[0] += t + ' ';
-      out[1] += b + ' ';
-    }
-  });
-  return out;
-}
-
 // ---------- gradient (blocky glyphs, hue sweep) ----------
 
 export interface GradientConfig {
@@ -182,17 +146,69 @@ export function gradientColor(
 
 // ---------- public ----------
 
-export function timerRows(secs: number, font: TimerFont): string[] {
+export interface TimerBlock {
+  kind: 'digit' | 'colon';
+  /** 0-5 for digits (HHMMSS), 6-7 for colons (after HH, after MM) */
+  place: number;
+  value: string;
+  rows: string[];
+}
+
+export function timerBlocks(secs: number, font: TimerFont): TimerBlock[] {
+  const [hh, mm, ss] = hmsParts(secs);
+  const specs: { kind: 'digit' | 'colon'; place: number; value: string }[] = [
+    { kind: 'digit', place: 0, value: hh[0]! },
+    { kind: 'digit', place: 1, value: hh[1]! },
+    { kind: 'colon', place: 6, value: ':' },
+    { kind: 'digit', place: 2, value: mm[0]! },
+    { kind: 'digit', place: 3, value: mm[1]! },
+    { kind: 'colon', place: 7, value: ':' },
+    { kind: 'digit', place: 4, value: ss[0]! },
+    { kind: 'digit', place: 5, value: ss[1]! },
+  ];
+  return specs.map((spec) => ({
+    ...spec,
+    rows: glyphRows(spec.value, font),
+  }));
+}
+
+export function glyphRows(ch: string, font: TimerFont): string[] {
   switch (font) {
     case 'digital':
-      return digitalRows(secs);
+      return digitalDigits[ch] ?? digitalDigits['0']!;
     case 'pixel':
-      return pixelRows(secs);
+      return pixToBraille(pixelDigits[ch] ?? pixelDigits['0']!);
     case 'blocky':
     case 'gradient':
     default:
-      return blockyRows(secs);
+      return blockyDigits[ch] ?? blockyDigits['0']!;
   }
+}
+
+function blankRows(template: string[]): string[] {
+  const width = template[0]?.length ?? 1;
+  return template.map(() => ' '.repeat(width));
+}
+
+export function blankBlock(block: TimerBlock): TimerBlock {
+  return { ...block, rows: blankRows(block.rows) };
+}
+
+export function replaceBlock(block: TimerBlock, value: string, font: TimerFont): TimerBlock {
+  return { ...block, value, rows: glyphRows(value, font) };
+}
+
+export function assembleRows(blocks: TimerBlock[]): string[] {
+  const height = blocks[0]?.rows.length ?? 0;
+  const rows: string[] = Array.from({ length: height }, () => '');
+  for (const block of blocks) {
+    for (let r = 0; r < height; r++) rows[r] += (block.rows[r] ?? '') + ' ';
+  }
+  return rows;
+}
+
+export function timerRows(secs: number, font: TimerFont): string[] {
+  return assembleRows(timerBlocks(secs, font));
 }
 
 export function timerFontHeight(font: TimerFont): number {

@@ -66,8 +66,18 @@ describe('preferences', () => {
 
   test('unknown preference fields are normalized to defaults', () => {
     const file = path.join(dir, 'preferences.json');
-    writeFileSync(file, JSON.stringify({ setupComplete: true, clockFormat: 'weird', color: 'ultraviolet' }), 'utf8');
+    writeFileSync(file, JSON.stringify({ setupComplete: true, clockFormat: 'weird', color: 'ultraviolet', animation: 'sparkle' }), 'utf8');
     const result = loadPreferencesPath(file);
     expect(result).toEqual({ ok: true, value: { ...DEFAULT_PREFERENCES, setupComplete: true } });
+  });
+
+  test('valid timer animations are preserved', () => {
+    const file = path.join(dir, 'preferences.json');
+    writeFileSync(file, JSON.stringify({ setupComplete: true, animation: 'digit-flash' }), 'utf8');
+    const result = loadPreferencesPath(file);
+    expect(result).toEqual({
+      ok: true,
+      value: { ...DEFAULT_PREFERENCES, setupComplete: true, animation: 'digit-flash' },
+    });
   });
 });
