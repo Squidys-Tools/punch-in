@@ -82,7 +82,7 @@ export const digitalDigits: Record<string, string[]> = {
   ':': ['   ', ' . ', ' . '],
 };
 
-// ---------- pixel (5x7 bitmaps rendered as braille, 3 cols x 2 rows) ----------
+// ---------- pixel (5x7 bitmaps rendered as braille, 3 cols x 3 rows) ----------
 
 export const pixelDigits: Record<string, string[]> = {
   '0': ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
@@ -103,28 +103,23 @@ const BRAILLE_BITS = [0x01, 0x08, 0x02, 0x10, 0x04, 0x20, 0x40, 0x80];
 function pixToBraille(rows: string[]): string[] {
   const w = rows[0].length;
   const cellCols = Math.ceil(w / 2);
-  const top: string[] = [];
-  const bottom: string[] = [];
+  const outputRows: string[][] = [[], [], []];
   for (let cell = 0; cell < cellCols; cell++) {
-    let mTop = 0;
-    let mBot = 0;
-    for (let rr = 0; rr < 4; rr++) {
-      for (let cc = 0; cc < 2; cc++) {
-        const x = cell * 2 + cc;
-        if (x < w && rows[rr][x] === '1') mTop |= BRAILLE_BITS[rr * 2 + cc];
+    const masks = [0, 0, 0];
+    for (let outputRow = 0; outputRow < outputRows.length; outputRow++) {
+      for (let rr = 0; rr < 4; rr++) {
+        const sourceRow = Math.floor(((outputRow * 4 + rr) * rows.length) / (outputRows.length * 4));
+        for (let cc = 0; cc < 2; cc++) {
+          const x = cell * 2 + cc;
+          if (x < w && rows[sourceRow]?.[x] === '1') masks[outputRow]! |= BRAILLE_BITS[rr * 2 + cc];
+        }
       }
     }
-    for (let rr = 0; rr < 4; rr++) {
-      for (let cc = 0; cc < 2; cc++) {
-        const x = cell * 2 + cc;
-        const y = 4 + rr;
-        if (y < rows.length && x < w && rows[y][x] === '1') mBot |= BRAILLE_BITS[rr * 2 + cc];
-      }
-    }
-    top.push(mTop ? String.fromCodePoint(0x2800 + mTop) : ' ');
-    bottom.push(mBot ? String.fromCodePoint(0x2800 + mBot) : ' ');
+    masks.forEach((mask, index) => {
+      outputRows[index]!.push(mask ? String.fromCodePoint(0x2800 + mask) : ' ');
+    });
   }
-  return [top.join(''), bottom.join('')];
+  return outputRows.map((row) => row.join(''));
 }
 
 // ---------- gradient (blocky glyphs, hue sweep) ----------
@@ -216,7 +211,7 @@ export function timerFontHeight(font: TimerFont): number {
     case 'digital':
       return 3;
     case 'pixel':
-      return 2;
+      return 3;
     case 'blocky':
     case 'gradient':
     default:

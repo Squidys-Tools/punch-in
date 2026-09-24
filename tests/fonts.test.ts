@@ -18,8 +18,7 @@ describe('timer fonts', () => {
     }
   });
 
-  test('pixel font is more compact than the digital font', () => {
-    expect(timerFontHeight('pixel')).toBeLessThan(timerFontHeight('digital'));
+  test('pixel font stays narrower than the digital font', () => {
     expect(timerRows(3661, 'pixel')[0].length).toBeLessThan(timerRows(3661, 'digital')[0].length);
   });
 
