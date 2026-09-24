@@ -82,7 +82,7 @@ export const digitalDigits: Record<string, string[]> = {
   ':': ['   ', ' . ', ' . '],
 };
 
-// ---------- pixel (5x7 bitmaps rendered as braille, 3 cols x 3 rows) ----------
+// ---------- pixel (5x7 bitmaps rendered as braille, 4 cols x 3 rows) ----------
 
 export const pixelDigits: Record<string, string[]> = {
   '0': ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
@@ -101,17 +101,20 @@ export const pixelDigits: Record<string, string[]> = {
 const BRAILLE_BITS = [0x01, 0x08, 0x02, 0x10, 0x04, 0x20, 0x40, 0x80];
 
 function pixToBraille(rows: string[]): string[] {
-  const w = rows[0].length;
-  const cellCols = Math.ceil(w / 2);
+  const sourceWidth = rows[0].length;
+  const outputWidth = Math.max(2, Math.ceil(sourceWidth * 1.6));
+  const outputHeight = Math.ceil(rows.length * (12 / 7));
+  const cellCols = outputWidth / 2;
   const outputRows: string[][] = [[], [], []];
   for (let cell = 0; cell < cellCols; cell++) {
     const masks = [0, 0, 0];
     for (let outputRow = 0; outputRow < outputRows.length; outputRow++) {
       for (let rr = 0; rr < 4; rr++) {
-        const sourceRow = Math.floor(((outputRow * 4 + rr) * rows.length) / (outputRows.length * 4));
+        const sourceRow = Math.floor(((outputRow * 4 + rr) * rows.length) / outputHeight);
         for (let cc = 0; cc < 2; cc++) {
           const x = cell * 2 + cc;
-          if (x < w && rows[sourceRow]?.[x] === '1') masks[outputRow]! |= BRAILLE_BITS[rr * 2 + cc];
+          const sourceX = Math.floor((x * sourceWidth) / outputWidth);
+          if (rows[sourceRow]?.[sourceX] === '1') masks[outputRow]! |= BRAILLE_BITS[rr * 2 + cc];
         }
       }
     }

@@ -18,8 +18,8 @@ describe('timer fonts', () => {
     }
   });
 
-  test('pixel font stays narrower than the digital font', () => {
-    expect(timerRows(3661, 'pixel')[0].length).toBeLessThan(timerRows(3661, 'digital')[0].length);
+  test('pixel font is wider than the compact blocky font', () => {
+    expect(timerRows(3661, 'pixel')[0].length).toBeGreaterThan(timerRows(3661, 'blocky')[0].length);
   });
 
   test('exposes the complete pastel timer palette', () => {
