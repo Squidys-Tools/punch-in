@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ACCENT_COLOR_HEX, FONTS, TIMER_COLOR_HEX, TIMER_COLORS, accentColor, assembleRows, blockyDigits, timerBlocks, timerFontHeight, timerRows } from '../src/fonts.js';
+import { ACCENT_COLOR_HEX, FONTS, TIMER_COLOR_HEX, TIMER_COLORS, accentColor, assembleRows, blockyDigits, digitalDigits, timerBlocks, timerFontHeight, timerRows } from '../src/fonts.js';
 
 describe('timer fonts', () => {
   test('each font reports the height of its rendered rows', () => {
@@ -12,7 +12,7 @@ describe('timer fonts', () => {
     for (const font of FONTS) {
       const rows = timerRows(3661, font);
       expect(rows.length).toBeGreaterThan(0);
-      if (font === 'digital') expect(rows.join('\n')).toContain(' _ ');
+      if (font === 'digital') expect(rows.join('\n')).toContain(' ___ ');
       else if (font === 'pixel') expect(rows.join('\n')).toMatch(/[^ ]/);
       else expect(rows.join('\n')).toContain('███');
     }
@@ -22,6 +22,13 @@ describe('timer fonts', () => {
     expect(Object.values(blockyDigits).every((rows) =>
       rows.length === 4 && rows.every((row) => row.length === 4),
     )).toBe(true);
+  });
+
+  test('digital font uses a five-by-five glyph grid', () => {
+    for (const glyph of Object.values(digitalDigits)) {
+      expect(glyph).toHaveLength(5);
+      expect(glyph.every((row) => row.length === 5)).toBe(true);
+    }
   });
 
   test('exposes the complete pastel timer palette', () => {

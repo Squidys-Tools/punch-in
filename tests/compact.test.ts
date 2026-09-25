@@ -9,9 +9,10 @@ describe('compactLevel', () => {
     // blocky+smooth: body = rows-4; fullH = 4+6+4 = 14 -> need rows >= 18
     expect(level(30, 'blocky', 'wide')).toBe(0);
     expect(level(18, 'blocky', 'wide')).toBe(0);
-    // digital+pixel: fullH = 3+6+4 = 13 -> need rows >= 17
+    // digital+pixel: fullH = 5+6+4 = 15 -> need rows >= 19
     expect(level(30, 'digital', 'pixel')).toBe(0);
-    expect(level(17, 'digital', 'pixel')).toBe(0);
+    expect(level(19, 'digital', 'pixel')).toBe(0);
+    expect(level(17, 'digital', 'pixel')).toBe(1);
   });
 
   test('ring drops first as the terminal squishes', () => {

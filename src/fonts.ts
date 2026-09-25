@@ -5,7 +5,7 @@
 //   - a block char like '█' marks a filled cell
 //   - a space ' ' marks an empty cell
 // All glyphs in one font must share the same number of rows. Blocky digits are
-// 4 chars wide; digital digits are 3 chars wide. Pixel stores 8x12 bitmaps.
+// 4 chars wide; digital digits are 5 chars wide. Pixel stores 8x12 bitmaps.
 //
 // Examples of tweaks:
 //   - swap '█' for '▓' or '▀' to change the texture of the whole blocky font
@@ -66,20 +66,20 @@ export const blockyDigits: Record<string, string[]> = {
   ':': ['    ', '  █ ', '    ', '  █ '],
 };
 
-// ---------- digital (3 rows x 3 cols, seven-segment) ----------
+// ---------- digital (5 rows x 5 cols, seven-segment) ----------
 
 export const digitalDigits: Record<string, string[]> = {
-  '0': [' _ ', '| |', '|_|'],
-  '1': ['   ', '  |', '  |'],
-  '2': [' _ ', ' _|', '|_ '],
-  '3': [' _ ', ' _|', ' _|'],
-  '4': ['   ', '|_|', '  |'],
-  '5': [' _ ', '|_ ', ' _|'],
-  '6': [' _ ', '|_ ', '|_|'],
-  '7': [' _ ', '  |', '  |'],
-  '8': [' _ ', '|_|', '|_|'],
-  '9': [' _ ', '|_|', ' _|'],
-  ':': ['   ', ' . ', ' . '],
+  '0': [' ___ ', '|   |', '|   |', '|   |', '|___|'],
+  '1': ['     ', '    |', '    |', '    |', '    |'],
+  '2': [' ___ ', '    |', ' ___ ', '|    ', '|____'],
+  '3': [' ___ ', '    |', ' ___ ', '    |', ' ___ '],
+  '4': ['     ', '|   |', '|___|', '    |', '    |'],
+  '5': [' ___ ', '|    ', '|___ ', '    |', ' ___|'],
+  '6': [' ___ ', '|    ', '|___|', '|   |', '|___|'],
+  '7': [' ___ ', '    |', '    |', '    |', '    |'],
+  '8': [' ___ ', '|   |', '|___|', '|   |', '|___|'],
+  '9': [' ___ ', '|   |', '|___|', '    |', ' ___|'],
+  ':': ['     ', '  .  ', '     ', '  .  ', '     '],
 };
 
 // ---------- pixel (8x12 bitmaps rendered as braille, 4 cols x 3 rows) ----------
@@ -240,7 +240,7 @@ export function timerRows(secs: number, font: TimerFont): string[] {
 export function timerFontHeight(font: TimerFont): number {
   switch (font) {
     case 'digital':
-      return 3;
+      return 5;
     case 'pixel':
       return 3;
     case 'blocky':
