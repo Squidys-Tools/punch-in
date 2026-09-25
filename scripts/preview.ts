@@ -95,11 +95,11 @@ out += section('TIMER TEXT STYLES');
 for (const font of FONTS) {
   const desc =
     font === 'blocky'
-      ? '5x3 solid blocks'
+      ? '4x5 solid blocks'
       : font === 'digital'
-        ? 'seven-segment LCD'
+        ? 'seven-segment LCD, 5x5'
         : font === 'pixel'
-          ? 'braille dot-matrix, compact'
+          ? 'braille dot-matrix, 4x5'
           : 'blocky with a hue sweep';
   out += show(font, desc, [...timerRows(SAMPLE_SECS, font), green('  ▶ tui')]);
 }

@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { ACCENT_COLOR_HEX, FONTS, TIMER_COLOR_HEX, TIMER_COLORS, accentColor, assembleRows, blockyDigits, digitalDigits, timerBlocks, timerFontHeight, timerRows } from '../src/fonts.js';
+import { ACCENT_COLOR_HEX, FONTS, TIMER_COLOR_HEX, TIMER_COLORS, accentColor, assembleRows, blockyDigits, digitalDigits, glyphRows, pixelDigits, timerBlocks, timerFontHeight, timerRows } from '../src/fonts.js';
 
 describe('timer fonts', () => {
-  test('each font reports the height of its rendered rows', () => {
+  test('every timer style renders five rows', () => {
     for (const font of FONTS) {
-      expect(timerRows(3661, font)).toHaveLength(timerFontHeight(font));
+      expect(timerFontHeight(font)).toBe(5);
+      expect(timerRows(3661, font)).toHaveLength(5);
     }
   });
 
@@ -18,9 +19,9 @@ describe('timer fonts', () => {
     }
   });
 
-  test('blocky font uses a wider, shorter grid', () => {
+  test('blocky font uses a four-by-five glyph grid', () => {
     expect(Object.values(blockyDigits).every((rows) =>
-      rows.length === 4 && rows.every((row) => row.length === 4),
+      rows.length === 5 && rows.every((row) => row.length === 4),
     )).toBe(true);
   });
 
@@ -28,6 +29,24 @@ describe('timer fonts', () => {
     for (const glyph of Object.values(digitalDigits)) {
       expect(glyph).toHaveLength(5);
       expect(glyph.every((row) => row.length === 5)).toBe(true);
+    }
+  });
+
+  test('pixel font uses an eight-by-twenty source grid', () => {
+    for (const [character, glyph] of Object.entries(pixelDigits)) {
+      const sourceWidth = character === ':' ? 2 : 8;
+      const renderedWidth = character === ':' ? 1 : 4;
+      expect(glyph).toHaveLength(20);
+      expect(glyph.every((row) => row.length === sourceWidth)).toBe(true);
+      const rendered = glyphRows(character, 'pixel');
+      expect(rendered).toHaveLength(5);
+      expect(rendered.every((row) => row.length === renderedWidth)).toBe(true);
+    }
+  });
+
+  test('gradient keeps the blocky font geometry', () => {
+    for (const character of '0123456789:') {
+      expect(glyphRows(character, 'gradient')).toEqual(glyphRows(character, 'blocky'));
     }
   });
 
