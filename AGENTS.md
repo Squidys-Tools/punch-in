@@ -4,21 +4,23 @@ Guidance for AI agents working in this repository.
 
 ## What this is
 
-`punch` is a small terminal time tracker built with Bun, TypeScript, React, and Ink. Session history lives in a local JSON file; there is no server or account. It is distributed via npm (`punch-in` package, `punch` bin), standalone installers (Windows/macOS/Linux), and GitHub releases.
+`punch` is a small terminal time tracker built with Bun, TypeScript, React, and OpenTUI. Session history lives in a local JSON file; there is no server or account. It is distributed via npm (`punch-in` package, `punch` bin), standalone installers (Windows/macOS/Linux), and GitHub releases.
 
 ## Project layout
 
 ```text
 src/main.ts          CLI entry: arg parsing, help text, dispatch to commands, TUI bootstrap
-src/commands.ts      Non-interactive command logic (in/out/status/goal/edit), returns CmdResult
+src/commands.ts      Non-interactive command logic (in/out/status/list/goal) plus session editing, returns CmdResult
 src/store.ts         Data file paths, load/save (atomic), date helpers, formatting
 src/preferences.ts   Preferences load/save (atomic) with normalization to defaults
 src/fsio.ts          Shared atomic write and corrupt-file quarantine helpers
 src/export.ts        CSV/JSON export of session history
+src/activity.ts      Activity summaries for a day (totals, averages, project rollups)
 src/uninstall.ts     Uninstall flow, install-manifest validation, data removal
-src/views.tsx        Ink TUI components (timer, setup, settings, help, activity, editor)
+src/views.tsx        OpenTUI TUI components (timer, setup, settings, help, activity, editor)
 src/fonts.ts         Timer fonts and color palettes
 src/ring.ts          Ring styles and concepts drawn around the timer
+src/timer-animation.ts  Timer animation modes and digit-color mixing
 scripts/             Release build, package verification, preview, installer checks
 tests/               Bun test suite (bun:test), one file per module
 install.sh/install.ps1  One-line installers used by GitHub releases
@@ -37,12 +39,12 @@ bun run dev                     # run the TUI with watch mode
 
 Keep all of these green before considering work done. CI (`.github/workflows/ci.yml`) runs audit, typecheck, coverage tests, and `verify:package` on Bun 1.4.0.
 
-Note on `--parallel`: Bun versions before 1.4.0 have a module-init race in the Ink/Yoga rendering tests (`Cannot access 'Yoga' before initialization`). It is fixed in 1.4.0; do not "fix" it by serializing tests or changing imports.
+Note on `--parallel`: Bun versions before 1.4.0 have a module-init race in the OpenTUI rendering tests (`Cannot access 'Yoga' before initialization`). It is fixed in 1.4.0; do not "fix" it by serializing tests or changing imports.
 
 ## Conventions
 
 - **Result-style errors everywhere.** Public functions return `{ ok, ... }` unions (`CmdResult`, `IoResult`, `Result`) instead of throwing. Only genuinely unrecoverable paths throw.
-- **No UI framework additions.** The TUI is Ink 7 + React 19 with plain `Box`/`Text`. No extra dependencies without discussion.
+- **No UI framework additions.** The TUI is OpenTUI (`@opentui/core` + `@opentui/react`) with React 19. No extra dependencies without discussion.
 - **ESM with explicit `.js` import extensions** in source, even for TS files.
 - **Local time is the user-facing truth.** Persist timestamps as RFC3339 with local offset (`toRfc3339Local`); compute days with the `isSameDay`/`sessionsOn` helpers, never with UTC dates.
 - **Data durability matters.** The JSON history file is the product. Writes go through `writeFileAtomic` (temp file + rename); corrupt files are quarantined (renamed to `*.corrupt-*`), never silently deleted. Keep that behavior in any refactor of `store.ts`/`preferences.ts`.
@@ -53,7 +55,7 @@ Note on `--parallel`: Bun versions before 1.4.0 have a module-init race in the I
 
 - Tests live in `tests/*.test.ts` using `bun:test` (`describe/expect/test`).
 - Filesystem tests create a temp dir with `mkdtempSync` in `beforeEach` and clean it in `afterEach`; route file access through the exported `*Path` functions or `PUNCH_DATA`/`PUNCH_PREFERENCES` env overrides. Do not touch real user data paths.
-- Ink rendering tests use `ink-testing-library`; keep them deterministic (no real timers).
+- OpenTUI rendering tests use `@opentui/react/test-utils` (`testRender`, `waitForFrame`); keep them deterministic (no real timers).
 - New CLI commands need: command logic tests, `main.ts` dispatch + USAGE entry, and a README section.
 
 ## Data files (do not break)

@@ -2,7 +2,7 @@
 
 `punch` is a small terminal time tracker for project work. Start a session, stop it when you are done, and review the day in the interactive TUI.
 
-It is built with Bun, TypeScript, React, and Ink. Session history is stored in a local JSON file, so there is no server or account to configure.
+It is built with Bun, TypeScript, React, and OpenTUI. Session history is stored in a local JSON file, so there is no server or account to configure.
 
 ## Install
 
