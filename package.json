@@ -32,13 +32,13 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@opentui/core": "^0.5.11",
-    "@opentui/react": "^0.5.11",
-    "react": "^19.2.8"
+    "@opentui/core": "^0.5.17",
+    "@opentui/react": "^0.5.17",
+    "react": "^19.3.0"
   },
   "devDependencies": {
     "@types/bun": "1.4.0",
-    "@types/react": "^19.2.18",
+    "@types/react": "^19.3.0",
     "react-devtools-core": "^7.0.1",
     "typescript": "^7.0.2"
   }

@@ -662,6 +662,13 @@ describe('activity navigation and session editing', () => {
     return `${days[date.getDay()]} ${months[date.getMonth()]} ${String(date.getDate()).padStart(2, ' ')}, ${date.getFullYear()}`;
   }
 
+  // The heading pads a single-digit day with a leading space ("Oct  9"), which
+  // the renderer trims, so match headings with whitespace collapsed on both
+  // sides. Without this the test only passes on two-digit days of the month.
+  function headingText(date: Date): string {
+    return flat(dateHeadingOf(date));
+  }
+
   test('right arrow advances the activity day', async () => {
     writeSession();
     const setup = await testRender(React.createElement(App), RENDER_SIZE);
@@ -669,15 +676,15 @@ describe('activity navigation and session editing', () => {
       const input = createInput(setup);
       await frameText(setup);
       await input.typeText('a');
-      const todayFrame = await settledFrame(setup, dateHeadingOf(new Date()));
-      expect(flat(todayFrame)).toContain(dateHeadingOf(new Date()));
+      const todayFrame = await settledFrame(setup, headingText(new Date()));
+      expect(flat(todayFrame)).toContain(headingText(new Date()));
 
       await input.pressArrow('right');
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const frame = await settledFrame(setup, dateHeadingOf(tomorrow));
+      const frame = await settledFrame(setup, headingText(tomorrow));
 
-      expect(flat(frame)).toContain(dateHeadingOf(tomorrow));
+      expect(flat(frame)).toContain(headingText(tomorrow));
       expect(flat(frame)).not.toContain('Research');
     } finally {
       setup.renderer.destroy();

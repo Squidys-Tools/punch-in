@@ -700,7 +700,7 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     const isLeft = key.name === 'left';
     const isRight = key.name === 'right';
     // Single printable char (code-point count guards against multi-byte escape
-    // sequences from special keys); mirrors Ink's `input` argument.
+    // sequences from special keys); mirrors OpenTUI's `key.sequence` field.
     const isChar = keyInput.length > 0 && [...keyInput].length === 1;
     if (screen === 'setup') {
       if (keyInput === ' ' || key.name === 'space') changeSetupChoice();

@@ -26,7 +26,7 @@ The published package should contain the built JavaScript entrypoint, production
 
 The package should expose a normal executable through `bin`. The build should target a supported Node version so that the package works with npm. Bun should remain supported for development and source installs.
 
-This path also gives users `npx punch` and, where supported, `bunx punch`.
+This path also gives users `npx punch-in` and, where supported, `bunx punch-in`.
 
 Uninstallation belongs to npm:
 
@@ -43,13 +43,13 @@ The one-line installer is for users who want Punch without installing Node or Bu
 macOS and Linux should use a shell installer:
 
 ```sh
-curl -fsSL https://punch.dev/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/squidllee/punch-in/main/install.sh | sh
 ```
 
 Windows should use a PowerShell installer:
 
 ```powershell
-irm https://punch.dev/install.ps1 | iex
+irm https://raw.githubusercontent.com/squidllee/punch-in/main/install.ps1 | iex
 ```
 
 The installers should detect the operating system and architecture, download the matching release artifact, install it into a user-local directory, and explain any `PATH` change the user needs to make.
