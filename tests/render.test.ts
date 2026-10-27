@@ -249,7 +249,7 @@ describe('setup and settings', () => {
       expect(flat(settingsFrame)).toContain('SETTINGS');
       expect(flat(settingsFrame)).toContain('Space change');
       expect(flat(settingsFrame)).toContain('keys · i start');
-      expect(flat(settingsFrame)).toContain('t/r/c style');
+      expect(flat(settingsFrame)).toContain('t/r/c/d style');
 
       await input.typeText(' ');
       await frameText(setup);
@@ -307,6 +307,72 @@ describe('setup and settings', () => {
       const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
 
       expect(saved.animation).toBe('digit-flash');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('settings cycles the dither background and saves it', async () => {
+    const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      for (let i = 0; i < 7; i++) {
+        await input.pressArrow('down');
+        await frameText(setup);
+      }
+      const noneFrame = await settledFrame(setup, 'dither background: none');
+      expect(flat(noneFrame)).toContain('dither background: none');
+      expect(flat(noneFrame)).toContain('plain background');
+      await input.typeText(' ');
+      const rippleFrame = await settledFrame(setup, 'dither background: ripple');
+      expect(flat(rippleFrame)).toContain('dither background: ripple');
+      expect(flat(rippleFrame)).toContain('dithered rings drifting outward');
+      await input.pressEnter();
+      await frameText(setup);
+      const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
+
+      expect(saved.background).toBe('ripple');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('d cycles the dither background from the timer and paints it behind the timer', async () => {
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      const plain = await frameText(setup);
+      expect(plain).not.toMatch(/[▀▄]/);
+      await input.typeText('d');
+      await frameText(setup);
+      const dithered = await frameText(setup);
+      const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
+
+      expect(saved.background).toBe('ripple');
+      expect(dithered).toMatch(/[▀▄]/);
+      expect(dithered).toContain('press i to start');
+      const lines = dithered.split('\n');
+      expect(lines[0]).not.toMatch(/[▀▄]/);
+      expect(lines[0]).toContain('PUNCH IN');
+      expect(lines.at(-1)).not.toMatch(/[▀▄]/);
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('d walks through every background and back to none', async () => {
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      const seen: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        await input.typeText('d');
+        seen.push(JSON.parse(readFileSync(preferencesFile, 'utf8')).background);
+      }
+
+      expect(seen).toEqual(['ripple', 'plasma', 'clouds', 'waves', 'none']);
     } finally {
       setup.renderer.destroy();
     }

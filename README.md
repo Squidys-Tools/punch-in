@@ -120,12 +120,13 @@ s       Open Settings (? also opens Settings)
 t       Cycle timer fonts (not shown in the footer)
 r       Cycle ring styles (not shown in the footer)
 c       Cycle ring concepts (not shown in the footer)
+d       Cycle dither backgrounds (not shown in the footer)
 q       Quit
 ```
 
 In Activity, the up and down arrow keys select a completed session, `Enter` edits it, `Tab` switches between Sessions and Analytics, the left and right arrow keys change the day, and `Esc` returns to the timer. The editor accepts project names and local timestamps in `YYYY-MM-DD HH:MM[:SS]` format. Duration is recalculated from the edited start and end times.
 
-Settings and first-run setup share the same preferences: clock format, timer font, accent color, ring style, ring concept, whether a new session can reuse the last project, and a timer animation (none, digit flash, or colon blink). The accent color applies to the timer, progress ring, headings, and interactive highlights. Settings also lists the timer keys and shows a short description of the selected animation. On that screen, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back.
+Settings and first-run setup share the same preferences: clock format, timer font, accent color, ring style, ring concept, whether a new session can reuse the last project, a timer animation (none, digit flash, or colon blink), and a dither background (none, ripple, plasma, clouds, or waves). The accent color applies to the timer, progress ring, headings, and interactive highlights. Settings also lists the timer keys and shows a short description of the selected animation and background. The dither background is an ordered-dither effect (the idea comes from [dithercn](https://dithercn.dev)) drawn behind the timer in the accent color with half-block characters; it leaves a clear area around the timer and uses no extra dependencies. It is off by default. On that screen, `Space` changes the selected value, `Enter` saves or continues, and `Esc` cancels or goes back.
 
 ## Activity
 

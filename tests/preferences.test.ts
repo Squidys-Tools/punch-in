@@ -80,4 +80,16 @@ describe('preferences', () => {
       value: { ...DEFAULT_PREFERENCES, setupComplete: true, animation: 'digit-flash' },
     });
   });
+
+  test('dither backgrounds are validated and default to none', () => {
+    const file = path.join(dir, 'preferences.json');
+    writeFileSync(file, JSON.stringify({ setupComplete: true, background: 'ripple' }), 'utf8');
+    expect(loadPreferencesPath(file)).toEqual({
+      ok: true,
+      value: { ...DEFAULT_PREFERENCES, setupComplete: true, background: 'ripple' },
+    });
+    writeFileSync(file, JSON.stringify({ setupComplete: true, background: 'glitter' }), 'utf8');
+    expect(loadPreferencesPath(file)).toEqual({ ok: true, value: { ...DEFAULT_PREFERENCES, setupComplete: true } });
+    expect(DEFAULT_PREFERENCES.background).toBe('none');
+  });
 });

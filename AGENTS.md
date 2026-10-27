@@ -21,6 +21,7 @@ src/views.tsx        OpenTUI TUI components (timer, setup, settings, help, activ
 src/fonts.ts         Timer fonts and color palettes
 src/ring.ts          Ring styles and concepts drawn around the timer
 src/timer-animation.ts  Timer animation modes and digit-color mixing
+src/dither.ts        Ordered-dither background fields and renderer (pure, no UI imports)
 scripts/             Release build, package verification, preview, installer checks
 tests/               Bun test suite (bun:test), one file per module
 install.sh/install.ps1  One-line installers used by GitHub releases

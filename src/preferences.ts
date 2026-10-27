@@ -5,6 +5,7 @@ import { dataFile } from './store.js';
 import { FONTS, TIMER_COLORS, type TimerColor, type TimerFont } from './fonts.js';
 import { RING_CONCEPTS, RING_STYLES, type RingConcept, type RingStyle } from './ring.js';
 import { isTimerAnimation, type TimerAnimation } from './timer-animation.js';
+import { isDitherBackground, type DitherBackground } from './dither.js';
 
 export type ClockFormat = '12h' | '24h';
 
@@ -17,6 +18,7 @@ export interface Preferences {
   ringConcept: RingConcept;
   reuseLastProject: boolean;
   animation: TimerAnimation;
+  background: DitherBackground;
 }
 
 export type PreferencesResult<T> =
@@ -32,6 +34,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   ringConcept: 'day-dial',
   reuseLastProject: false,
   animation: 'none',
+  background: 'none',
 };
 
 export function preferencesFile(): string {
@@ -83,6 +86,7 @@ function normalize(value: Record<string, unknown>): Preferences {
     ringConcept: isIn(value.ringConcept, RING_CONCEPTS) ? value.ringConcept : DEFAULT_PREFERENCES.ringConcept,
     reuseLastProject: typeof value.reuseLastProject === 'boolean' ? value.reuseLastProject : DEFAULT_PREFERENCES.reuseLastProject,
     animation: isTimerAnimation(value.animation) ? value.animation : DEFAULT_PREFERENCES.animation,
+    background: isDitherBackground(value.background) ? value.background : DEFAULT_PREFERENCES.background,
   };
 }
 

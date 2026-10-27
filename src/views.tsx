@@ -1,4 +1,5 @@
 import React from 'react';
+import { RGBA, type BoxRenderable, type OptimizedBuffer, type Renderable } from '@opentui/core';
 import { useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/react';
 import { editSession as cmdEditSession, start as cmdStart, stop as cmdStop, type CmdResult } from './commands.js';
 import { elapsedSeconds, formatDateTimeInput, formatDuration, isSameDay, load, parseDateTimeInput, type Active, type Session, type Store } from './store.js';
@@ -19,10 +20,19 @@ import {
   createAnimationState,
   digitKey,
   faceColor,
+  mixColor,
   prepareBlocks,
   syncAnimationState,
   type TimerAnimation,
 } from './timer-animation.js';
+import {
+  DITHER_BACKGROUNDS,
+  DITHER_CHARS,
+  backgroundDescription,
+  backgroundLabel,
+  renderDither,
+  type DitherBackground,
+} from './dither.js';
 
 export type InitialScreen = 'timer' | 'settings';
 export type { TimerFont } from './fonts.js';
@@ -212,6 +222,40 @@ function TimerGlyphs({
   );
 }
 
+const DITHER_INK_STRENGTH = 0.4;
+const DITHER_FRAME_MS = 100;
+
+const ditherFrame: { codes: Uint8Array } = { codes: new Uint8Array(0) };
+
+function DitherLayer({ background, accent, avoid }: { background: DitherBackground; accent: string; avoid: React.RefObject<Renderable | null> }) {
+  const ink = RGBA.fromHex(mixColor('#000000', accent, DITHER_INK_STRENGTH));
+  const paper = RGBA.fromInts(0, 0, 0, 0);
+  return (
+    <box
+      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+      renderBefore={function (this: { x: number; y: number; width: number; height: number }, buffer: OptimizedBuffer) {
+        const { x, y, width, height } = this;
+        if (background === 'none' || width <= 0 || height <= 0) return;
+        const target = avoid.current;
+        ditherFrame.codes = renderDither({
+          background,
+          cols: width,
+          rows: height,
+          time: Date.now() / 1000,
+          clear: target ? { x: target.x - x, y: target.y - y, width: target.width, height: target.height } : undefined,
+          out: ditherFrame.codes,
+        });
+        for (let row = 0; row < height; row++) {
+          for (let col = 0; col < width; col++) {
+            const code = ditherFrame.codes[row * width + col]!;
+            if (code !== 0) buffer.setCellWithAlphaBlending(x + col, y + row, DITHER_CHARS[code]!, ink, paper);
+          }
+        }
+      }}
+    />
+  );
+}
+
 function RingRow({ cells, accent }: { cells: Cell[]; accent: string }) {
   return (
     <text>
@@ -330,7 +374,8 @@ type SettingKey =
   | 'ringStyle'
   | 'ringConcept'
   | 'reuseLastProject'
-  | 'animation';
+  | 'animation'
+  | 'background';
 const SETTING_KEYS: SettingKey[] = [
   'clockFormat',
   'font',
@@ -339,6 +384,7 @@ const SETTING_KEYS: SettingKey[] = [
   'ringConcept',
   'reuseLastProject',
   'animation',
+  'background',
 ];
 
 function settingLabel(key: SettingKey): string {
@@ -350,6 +396,7 @@ function settingLabel(key: SettingKey): string {
     case 'ringConcept': return 'ring concept';
     case 'reuseLastProject': return 'reuse last project';
     case 'animation': return 'timer animation';
+    case 'background': return 'dither background';
   }
 }
 
@@ -357,6 +404,7 @@ function settingValue(preferences: Preferences, key: SettingKey): string {
   if (key === 'clockFormat') return clockLabel(preferences.clockFormat);
   if (key === 'reuseLastProject') return preferences.reuseLastProject ? 'on' : 'off';
   if (key === 'animation') return animationLabel(preferences.animation);
+  if (key === 'background') return backgroundLabel(preferences.background);
   return preferences[key];
 }
 
@@ -373,9 +421,9 @@ function SettingsScreen({ preferences, focus, status, accent }: { preferences: P
             {focus === index ? '› ' : '  '}{settingLabel(key)}: {focus === index ? <b>{settingValue(preferences, key)}</b> : settingValue(preferences, key)}
           </text>
         ))}
-        <text fg="gray">  {animationDescription(preferences.animation)}</text>
+        <text fg="gray">  {animationDescription(preferences.animation)} · {backgroundDescription(preferences.background)}</text>
         <text>{' '}</text>
-        <text fg="gray">keys · i start · o stop · a activity · t/r/c style · q quit</text>
+        <text fg="gray">keys · i start · o stop · a activity · t/r/c/d style · q quit</text>
         <text fg="gray">↑↓ move · Space change · Enter save · Esc cancel</text>
       </box>
     </CenteredScreen>
@@ -494,11 +542,15 @@ export function Shell({ store, preferences, mode, input, status }: ShellProps) {
   const { width, height } = useTerminalDimensions();
   const compact = isCompactViewport(height, width);
   const accent = accentColor(preferences.color);
+  const bodyRef = React.useRef<BoxRenderable | null>(null);
   return (
     <box style={{ flexDirection: 'column', height, width: '100%' }}>
       <Header preferences={preferences} accent={accent} />
       <box style={{ flexGrow: 1, flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-        <TimerBody store={store} preferences={preferences} compact={compact} accent={accent} />
+        <DitherLayer background={preferences.background} accent={accent} avoid={bodyRef} />
+        <box ref={bodyRef} style={{ flexDirection: 'column', alignItems: 'center' }}>
+          <TimerBody store={store} preferences={preferences} compact={compact} accent={accent} />
+        </box>
       </box>
       <Footer mode={mode} input={input} status={status} store={store} accent={accent} />
     </box>
@@ -546,10 +598,11 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
 
   const [, setTick] = React.useState(0);
   const animationActive = preferences.animation !== 'none' && store.active !== null;
+  const tickMs = animationActive ? 50 : preferences.background !== 'none' ? DITHER_FRAME_MS : 500;
   React.useEffect(() => {
-    const timer = setInterval(() => setTick((value) => value + 1), animationActive ? 50 : 500);
+    const timer = setInterval(() => setTick((value) => value + 1), tickMs);
     return () => clearInterval(timer);
-  }, [animationActive]);
+  }, [tickMs]);
 
   const report = (result: CmdResult) => setStatus({ text: result.message, isError: !result.ok });
   const reload = () => setStore(loadStore());
@@ -685,6 +738,7 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       if (key === 'ringStyle') return { ...current, ringStyle: cycle(RING_STYLES, current.ringStyle) };
       if (key === 'ringConcept') return { ...current, ringConcept: cycle(RING_CONCEPTS, current.ringConcept) };
       if (key === 'animation') return { ...current, animation: cycle(TIMER_ANIMATIONS, current.animation) };
+      if (key === 'background') return { ...current, background: cycle(DITHER_BACKGROUNDS, current.background) };
       return { ...current, reuseLastProject: !current.reuseLastProject };
     });
   };
@@ -773,6 +827,7 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
     else if (keyInput === 't') saveQuickPreference({ ...preferences, font: cycle(FONTS, preferences.font) });
     else if (keyInput === 'r') saveQuickPreference({ ...preferences, ringStyle: cycle(RING_STYLES, preferences.ringStyle) });
     else if (keyInput === 'c') saveQuickPreference({ ...preferences, ringConcept: cycle(RING_CONCEPTS, preferences.ringConcept) });
+    else if (keyInput === 'd') saveQuickPreference({ ...preferences, background: cycle(DITHER_BACKGROUNDS, preferences.background) });
     else if (keyInput === '?') { setStatus(null); setDraftPreferences(preferences); setScreen('settings'); }
     else if (keyInput === 'a') { setStatus(null); setActivityDate(new Date()); setActivityTab('sessions'); setActivitySelection(0); setScreen('activity'); }
     else if (keyInput === 's') { setStatus(null); setDraftPreferences(preferences); setScreen('settings'); }
