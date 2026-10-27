@@ -5,7 +5,14 @@ import { dataFile } from './store.js';
 import { FONTS, TIMER_COLORS, type TimerColor, type TimerFont } from './fonts.js';
 import { RING_CONCEPTS, RING_STYLES, type RingConcept, type RingStyle } from './ring.js';
 import { isTimerAnimation, type TimerAnimation } from './timer-animation.js';
-import { isDitherBackground, type DitherBackground } from './dither.js';
+import {
+  isDitherBackground,
+  isDitherColor,
+  isDitherStyle,
+  type DitherBackground,
+  type DitherColor,
+  type DitherStyle,
+} from './dither.js';
 
 export type ClockFormat = '12h' | '24h';
 
@@ -19,6 +26,8 @@ export interface Preferences {
   reuseLastProject: boolean;
   animation: TimerAnimation;
   background: DitherBackground;
+  ditherStyle: DitherStyle;
+  ditherColor: DitherColor;
 }
 
 export type PreferencesResult<T> =
@@ -35,6 +44,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   reuseLastProject: false,
   animation: 'none',
   background: 'none',
+  ditherStyle: 'ordered',
+  ditherColor: 'accent',
 };
 
 export function preferencesFile(): string {
@@ -87,6 +98,8 @@ function normalize(value: Record<string, unknown>): Preferences {
     reuseLastProject: typeof value.reuseLastProject === 'boolean' ? value.reuseLastProject : DEFAULT_PREFERENCES.reuseLastProject,
     animation: isTimerAnimation(value.animation) ? value.animation : DEFAULT_PREFERENCES.animation,
     background: isDitherBackground(value.background) ? value.background : DEFAULT_PREFERENCES.background,
+    ditherStyle: isDitherStyle(value.ditherStyle) ? value.ditherStyle : DEFAULT_PREFERENCES.ditherStyle,
+    ditherColor: isDitherColor(value.ditherColor) ? value.ditherColor : DEFAULT_PREFERENCES.ditherColor,
   };
 }
 

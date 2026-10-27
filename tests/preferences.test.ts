@@ -92,4 +92,17 @@ describe('preferences', () => {
     expect(loadPreferencesPath(file)).toEqual({ ok: true, value: { ...DEFAULT_PREFERENCES, setupComplete: true } });
     expect(DEFAULT_PREFERENCES.background).toBe('none');
   });
+
+  test('dither style and color are validated and default to ordered and accent', () => {
+    const file = path.join(dir, 'preferences.json');
+    writeFileSync(file, JSON.stringify({ setupComplete: true, ditherStyle: 'noise', ditherColor: 'drift' }), 'utf8');
+    expect(loadPreferencesPath(file)).toEqual({
+      ok: true,
+      value: { ...DEFAULT_PREFERENCES, setupComplete: true, ditherStyle: 'noise', ditherColor: 'drift' },
+    });
+    writeFileSync(file, JSON.stringify({ setupComplete: true, ditherStyle: 'halftone', ditherColor: 'neon' }), 'utf8');
+    expect(loadPreferencesPath(file)).toEqual({ ok: true, value: { ...DEFAULT_PREFERENCES, setupComplete: true } });
+    expect(DEFAULT_PREFERENCES.ditherStyle).toBe('ordered');
+    expect(DEFAULT_PREFERENCES.ditherColor).toBe('accent');
+  });
 });

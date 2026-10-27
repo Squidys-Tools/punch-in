@@ -6,6 +6,8 @@
 // terminal cell (upper or lower half block), so every cell carries two pixels
 // and the pixels are square.
 
+import { ACCENT_COLOR_HEX, TIMER_COLORS, type TimerColor } from './fonts.js';
+
 export type DitherBackground = 'none' | 'ripple' | 'plasma' | 'clouds' | 'waves';
 
 export const DITHER_BACKGROUNDS: DitherBackground[] = ['none', 'ripple', 'plasma', 'clouds', 'waves'];
@@ -26,6 +28,67 @@ export function backgroundDescription(value: DitherBackground): string {
     case 'clouds': return 'dithered clouds drifting by';
     case 'waves': return 'dithered waves rolling across';
   }
+}
+
+// ---------- style and color ----------
+
+/** How tone becomes ink: a tidy Bayer grid, or a random per-pixel threshold (grain). */
+export type DitherStyle = 'ordered' | 'noise';
+
+export const DITHER_STYLES: DitherStyle[] = ['ordered', 'noise'];
+
+export function isDitherStyle(value: unknown): value is DitherStyle {
+  return typeof value === 'string' && (DITHER_STYLES as string[]).includes(value);
+}
+
+export function styleDescription(value: DitherStyle): string {
+  return value === 'ordered' ? 'tidy crosshatch grid' : 'grainy film-like noise';
+}
+
+/** 'accent' follows the accent color, 'drift' slides through hues, the rest are the timer palette. */
+export type DitherColor = 'accent' | TimerColor | 'drift';
+
+export const DITHER_COLORS: DitherColor[] = ['accent', ...TIMER_COLORS, 'drift'];
+
+export function isDitherColor(value: unknown): value is DitherColor {
+  return typeof value === 'string' && (DITHER_COLORS as string[]).includes(value);
+}
+
+export function colorDescription(value: DitherColor): string {
+  if (value === 'accent') return 'follows the accent color';
+  if (value === 'drift') return 'hues drift across the screen';
+  return value + ' ink';
+}
+
+/** Ink hex for a fixed color choice. 'gray' is a real gray here, unlike the cyan accent it maps to elsewhere. */
+export function inkHex(color: Exclude<DitherColor, 'drift'>, accent: string): string {
+  if (color === 'accent') return accent;
+  if (color === 'gray') return '#9a9a9a';
+  return ACCENT_COLOR_HEX[color];
+}
+
+export const DRIFT_STEPS = 48;
+
+/** Evenly spaced pastel hues as hex colors. */
+export function hueRamp(steps: number = DRIFT_STEPS): string[] {
+  const out: string[] = [];
+  for (let step = 0; step < steps; step++) {
+    const hue = (step / steps) * 6;
+    const lightness = 0.68;
+    const chroma = 0.62 * (1 - Math.abs(2 * lightness - 1));
+    const x = chroma * (1 - Math.abs((hue % 2) - 1));
+    const [r, g, b] =
+      hue < 1 ? [chroma, x, 0] : hue < 2 ? [x, chroma, 0] : hue < 3 ? [0, chroma, x] : hue < 4 ? [0, x, chroma] : hue < 5 ? [x, 0, chroma] : [chroma, 0, x];
+    const m = lightness - chroma / 2;
+    out.push('#' + [r, g, b].map((value) => Math.round((value + m) * 255).toString(16).padStart(2, '0')).join(''));
+  }
+  return out;
+}
+
+/** Index into a hue ramp for a cell: hues change across the screen and slide with time. */
+export function driftIndex(cx: number, cy: number, cols: number, rows: number, time: number, steps: number = DRIFT_STEPS): number {
+  const phase = 0.8 * (cx / Math.max(1, cols)) + 0.5 * (cy / Math.max(1, rows)) + time * 0.03;
+  return Math.floor(fract(phase) * steps) % steps;
 }
 
 // ---------- noise helpers (ports of the helpers dithercn gives every field) ----------
@@ -104,9 +167,14 @@ export function bayerThreshold(x: number, y: number): number {
   return BAYER[(y & (BAYER_SIZE - 1)) * BAYER_SIZE + (x & (BAYER_SIZE - 1))]!;
 }
 
+/** White-noise threshold in (0, 1): every pixel gets its own fixed random cutoff, so tones read as film grain. */
+export function noiseThreshold(x: number, y: number): number {
+  return hash21(x + 0.37, y + 0.71) * 0.998 + 0.001;
+}
+
 /** True when a pixel of the given tone is drawn as ink. */
-export function ditherPixel(tone: number, x: number, y: number): boolean {
-  return tone > bayerThreshold(x, y);
+export function ditherPixel(tone: number, x: number, y: number, style: DitherStyle = 'ordered'): boolean {
+  return tone > (style === 'noise' ? noiseThreshold(x, y) : bayerThreshold(x, y));
 }
 
 // ---------- fields ----------
@@ -183,6 +251,8 @@ export function clearStrength(rect: ClearRect, cx: number, cy: number): number {
 
 export interface DitherOptions {
   background: DitherBackground;
+  /** Defaults to 'ordered'. */
+  style?: DitherStyle;
   cols: number;
   rows: number;
   /** Seconds. */
@@ -205,6 +275,7 @@ const MAX_TONE = 0.82;
 /** Dither a whole screen of half-block cells. Returns one code per cell, row by row. */
 export function renderDither(options: DitherOptions): Uint8Array {
   const { background, cols, rows, time } = options;
+  const style = options.style ?? 'ordered';
   const size = Math.max(0, cols) * Math.max(0, rows);
   const out = options.out && options.out.length === size ? options.out : new Uint8Array(size);
   if (background === 'none' || size === 0) return out.fill(0);
@@ -232,7 +303,7 @@ export function renderDither(options: DitherOptions): Uint8Array {
         const edge = smoothstep(0.25, 1.05, Math.hypot(dx * 0.8, dy));
         const strength = (1 - calm + calm * edge) * keep;
         const tone = clamp01(field(u, v, aspect, time)) * MAX_TONE * strength;
-        if (ditherPixel(tone, cx, py)) code |= 1 << half;
+        if (ditherPixel(tone, cx, py, style)) code |= 1 << half;
       }
       out[cy * cols + cx] = code;
     }

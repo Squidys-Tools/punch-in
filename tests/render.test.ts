@@ -338,6 +338,74 @@ describe('setup and settings', () => {
     }
   });
 
+  test('settings cycles dither style and color and saves them', async () => {
+    const setup = await testRender(React.createElement(App, { initialScreen: 'settings' }), RENDER_SIZE);
+    try {
+      const input = createInput(setup);
+      await frameText(setup);
+      for (let i = 0; i < 8; i++) {
+        await input.pressArrow('down');
+        await frameText(setup);
+      }
+      const orderedFrame = await settledFrame(setup, 'dither style: ordered');
+      expect(flat(orderedFrame)).toContain('dither style: ordered');
+      expect(flat(orderedFrame)).toContain('tidy crosshatch grid');
+      await input.typeText(' ');
+      const noiseFrame = await settledFrame(setup, 'dither style: noise');
+      expect(flat(noiseFrame)).toContain('grainy film-like noise');
+      await input.pressArrow('down');
+      const accentFrame = await settledFrame(setup, 'dither color: accent');
+      expect(flat(accentFrame)).toContain('follows the accent color');
+      for (let i = 0; i < 8; i++) await input.typeText(' ');
+      const driftFrame = await settledFrame(setup, 'dither color: drift');
+      expect(flat(driftFrame)).toContain('hues drift across the screen');
+      await input.pressEnter();
+      await frameText(setup);
+      const saved = JSON.parse(readFileSync(preferencesFile, 'utf8'));
+
+      expect(saved.ditherStyle).toBe('noise');
+      expect(saved.ditherColor).toBe('drift');
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('drift color paints more than one hue behind the timer', async () => {
+    savePreferencesPath(preferencesFile, { ...DEFAULT_PREFERENCES, setupComplete: true, background: 'plasma', ditherColor: 'drift', ditherStyle: 'noise' });
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      await frameText(setup);
+      const colors = new Set<string>();
+      for (const line of setup.captureSpans().lines) {
+        for (const span of line.spans) {
+          if (/[▀▄]/.test(span.text)) colors.add(Array.from(span.fg.buffer.slice(0, 3)).join(','));
+        }
+      }
+
+      expect(colors.size).toBeGreaterThan(3);
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test('a fixed dither color paints a single hue behind the timer', async () => {
+    savePreferencesPath(preferencesFile, { ...DEFAULT_PREFERENCES, setupComplete: true, background: 'plasma', ditherColor: 'pink' });
+    const setup = await testRender(React.createElement(App), RENDER_SIZE);
+    try {
+      await frameText(setup);
+      const colors = new Set<string>();
+      for (const line of setup.captureSpans().lines) {
+        for (const span of line.spans) {
+          if (/[▀▄]/.test(span.text)) colors.add(Array.from(span.fg.buffer.slice(0, 3)).join(','));
+        }
+      }
+
+      expect(colors.size).toBe(1);
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
   test('d cycles the dither background from the timer and paints it behind the timer', async () => {
     const setup = await testRender(React.createElement(App), RENDER_SIZE);
     try {

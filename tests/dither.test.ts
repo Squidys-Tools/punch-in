@@ -2,6 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import {
   DITHER_BACKGROUNDS,
   DITHER_CHARS,
+  DITHER_COLORS,
+  DITHER_STYLES,
+  DRIFT_STEPS,
   backgroundDescription,
   backgroundLabel,
   bayerThreshold,
@@ -12,6 +15,14 @@ import {
   isDitherBackground,
   noise2,
   clearStrength,
+  colorDescription,
+  driftIndex,
+  hueRamp,
+  inkHex,
+  isDitherColor,
+  isDitherStyle,
+  noiseThreshold,
+  styleDescription,
   renderDither,
   smoothstep,
 } from '../src/dither.js';
@@ -164,5 +175,84 @@ describe('renderDither', () => {
   test('ditherText maps codes to half-block characters', () => {
     expect(DITHER_CHARS).toEqual([' ', '▀', '▄', '█']);
     expect(ditherText(new Uint8Array([0, 1, 2, 3, 3, 2]), 3)).toEqual([' ▀▄', '██▄']);
+  });
+});
+
+describe('dither style', () => {
+  test('lists the styles', () => {
+    expect(DITHER_STYLES).toEqual(['ordered', 'noise']);
+    expect(isDitherStyle('noise')).toBe(true);
+    expect(isDitherStyle('stipple')).toBe(false);
+    for (const style of DITHER_STYLES) expect(styleDescription(style).length).toBeGreaterThan(0);
+  });
+
+  test('noise thresholds are deterministic, in range, and average near the middle', () => {
+    let sum = 0;
+    for (let y = 0; y < 40; y++) {
+      for (let x = 0; x < 40; x++) {
+        const value = noiseThreshold(x, y);
+        expect(value).toBeGreaterThan(0);
+        expect(value).toBeLessThan(1);
+        expect(value).toBe(noiseThreshold(x, y));
+        sum += value;
+      }
+    }
+    expect(sum / 1600).toBeGreaterThan(0.45);
+    expect(sum / 1600).toBeLessThan(0.55);
+  });
+
+  test('noise coverage follows tone', () => {
+    const coverage = (tone: number) => {
+      let on = 0;
+      for (let y = 0; y < 60; y++) for (let x = 0; x < 60; x++) if (ditherPixel(tone, x, y, 'noise')) on++;
+      return on / 3600;
+    };
+    expect(coverage(0)).toBe(0);
+    expect(coverage(1)).toBe(1);
+    expect(Math.abs(coverage(0.3) - 0.3)).toBeLessThan(0.05);
+  });
+
+  test('noise renders a different pattern from ordered at the same time', () => {
+    const base = { background: 'clouds' as const, cols: 60, rows: 20, time: 3 };
+    const ordered = renderDither({ ...base, style: 'ordered' });
+    const noise = renderDither({ ...base, style: 'noise' });
+    expect([...ordered]).toEqual([...renderDither(base)]);
+    expect([...noise]).not.toEqual([...ordered]);
+    expect(noise.some((code) => code !== 0)).toBe(true);
+  });
+});
+
+describe('dither color', () => {
+  test('offers accent, every timer color, and drift', () => {
+    expect(DITHER_COLORS).toEqual(['accent', 'gray', 'pink', 'peach', 'lemon', 'mint', 'sky', 'lilac', 'drift']);
+    expect(isDitherColor('drift')).toBe(true);
+    expect(isDitherColor('neon')).toBe(false);
+    expect(colorDescription('accent')).toBe('follows the accent color');
+    expect(colorDescription('drift')).toBe('hues drift across the screen');
+    expect(colorDescription('mint')).toBe('mint ink');
+  });
+
+  test('inkHex follows the accent or the palette', () => {
+    expect(inkHex('accent', '#123456')).toBe('#123456');
+    expect(inkHex('pink', '#123456')).toBe('#FFB3C6');
+    expect(inkHex('gray', '#123456')).toBe('#9a9a9a');
+  });
+
+  test('hue ramp is a set of distinct valid pastel colors', () => {
+    const ramp = hueRamp();
+    expect(ramp.length).toBe(DRIFT_STEPS);
+    expect(new Set(ramp).size).toBe(DRIFT_STEPS);
+    for (const hex of ramp) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  test('drift index varies across the screen, slides with time, and wraps', () => {
+    const at = (cx: number, cy: number, t: number) => driftIndex(cx, cy, 80, 24, t);
+    expect(at(0, 0, 0)).not.toBe(at(40, 12, 0));
+    expect(at(10, 10, 0)).not.toBe(at(10, 10, 20));
+    for (let i = 0; i < 400; i++) {
+      const index = at(i % 80, i % 24, i * 1.7);
+      expect(index).toBeGreaterThanOrEqual(0);
+      expect(index).toBeLessThan(DRIFT_STEPS);
+    }
   });
 });

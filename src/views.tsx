@@ -28,10 +28,19 @@ import {
 import {
   DITHER_BACKGROUNDS,
   DITHER_CHARS,
+  DITHER_COLORS,
+  DITHER_STYLES,
   backgroundDescription,
   backgroundLabel,
+  colorDescription,
+  driftIndex,
+  hueRamp,
+  inkHex,
   renderDither,
+  styleDescription,
   type DitherBackground,
+  type DitherColor,
+  type DitherStyle,
 } from './dither.js';
 
 export type InitialScreen = 'timer' | 'settings';
@@ -227,8 +236,23 @@ const DITHER_FRAME_MS = 100;
 
 const ditherFrame: { codes: Uint8Array } = { codes: new Uint8Array(0) };
 
-function DitherLayer({ background, accent, avoid }: { background: DitherBackground; accent: string; avoid: React.RefObject<Renderable | null> }) {
-  const ink = RGBA.fromHex(mixColor('#000000', accent, DITHER_INK_STRENGTH));
+const dim = (hex: string) => RGBA.fromHex(mixColor('#000000', hex, DITHER_INK_STRENGTH));
+let driftInks: RGBA[] | null = null;
+
+function DitherLayer({
+  background,
+  style,
+  color,
+  accent,
+  avoid,
+}: {
+  background: DitherBackground;
+  style: DitherStyle;
+  color: DitherColor;
+  accent: string;
+  avoid: React.RefObject<Renderable | null>;
+}) {
+  const fixedInk = color === 'drift' ? null : dim(inkHex(color, accent));
   const paper = RGBA.fromInts(0, 0, 0, 0);
   return (
     <box
@@ -237,18 +261,23 @@ function DitherLayer({ background, accent, avoid }: { background: DitherBackgrou
         const { x, y, width, height } = this;
         if (background === 'none' || width <= 0 || height <= 0) return;
         const target = avoid.current;
+        const time = Date.now() / 1000;
         ditherFrame.codes = renderDither({
           background,
+          style,
           cols: width,
           rows: height,
-          time: Date.now() / 1000,
+          time,
           clear: target ? { x: target.x - x, y: target.y - y, width: target.width, height: target.height } : undefined,
           out: ditherFrame.codes,
         });
+        if (!fixedInk) driftInks ??= hueRamp().map(dim);
         for (let row = 0; row < height; row++) {
           for (let col = 0; col < width; col++) {
             const code = ditherFrame.codes[row * width + col]!;
-            if (code !== 0) buffer.setCellWithAlphaBlending(x + col, y + row, DITHER_CHARS[code]!, ink, paper);
+            if (code === 0) continue;
+            const ink = fixedInk ?? driftInks![driftIndex(col, row, width, height, time)]!;
+            buffer.setCellWithAlphaBlending(x + col, y + row, DITHER_CHARS[code]!, ink, paper);
           }
         }
       }}
@@ -375,7 +404,9 @@ type SettingKey =
   | 'ringConcept'
   | 'reuseLastProject'
   | 'animation'
-  | 'background';
+  | 'background'
+  | 'ditherStyle'
+  | 'ditherColor';
 const SETTING_KEYS: SettingKey[] = [
   'clockFormat',
   'font',
@@ -385,6 +416,8 @@ const SETTING_KEYS: SettingKey[] = [
   'reuseLastProject',
   'animation',
   'background',
+  'ditherStyle',
+  'ditherColor',
 ];
 
 function settingLabel(key: SettingKey): string {
@@ -397,6 +430,8 @@ function settingLabel(key: SettingKey): string {
     case 'reuseLastProject': return 'reuse last project';
     case 'animation': return 'timer animation';
     case 'background': return 'dither background';
+    case 'ditherStyle': return 'dither style';
+    case 'ditherColor': return 'dither color';
   }
 }
 
@@ -405,7 +440,17 @@ function settingValue(preferences: Preferences, key: SettingKey): string {
   if (key === 'reuseLastProject') return preferences.reuseLastProject ? 'on' : 'off';
   if (key === 'animation') return animationLabel(preferences.animation);
   if (key === 'background') return backgroundLabel(preferences.background);
+  if (key === 'ditherStyle') return preferences.ditherStyle;
+  if (key === 'ditherColor') return preferences.ditherColor;
   return preferences[key];
+}
+
+function settingDescription(preferences: Preferences, key: SettingKey | undefined): string {
+  if (key === 'animation') return animationDescription(preferences.animation);
+  if (key === 'background') return backgroundDescription(preferences.background);
+  if (key === 'ditherStyle') return styleDescription(preferences.ditherStyle);
+  if (key === 'ditherColor') return colorDescription(preferences.ditherColor);
+  return ' ';
 }
 
 function SettingsScreen({ preferences, focus, status, accent }: { preferences: Preferences; focus: number; status: StatusMsg | null; accent: string }) {
@@ -421,7 +466,7 @@ function SettingsScreen({ preferences, focus, status, accent }: { preferences: P
             {focus === index ? '› ' : '  '}{settingLabel(key)}: {focus === index ? <b>{settingValue(preferences, key)}</b> : settingValue(preferences, key)}
           </text>
         ))}
-        <text fg="gray">  {animationDescription(preferences.animation)} · {backgroundDescription(preferences.background)}</text>
+        <text fg="gray">  {settingDescription(preferences, SETTING_KEYS[focus])}</text>
         <text>{' '}</text>
         <text fg="gray">keys · i start · o stop · a activity · t/r/c/d style · q quit</text>
         <text fg="gray">↑↓ move · Space change · Enter save · Esc cancel</text>
@@ -547,7 +592,7 @@ export function Shell({ store, preferences, mode, input, status }: ShellProps) {
     <box style={{ flexDirection: 'column', height, width: '100%' }}>
       <Header preferences={preferences} accent={accent} />
       <box style={{ flexGrow: 1, flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-        <DitherLayer background={preferences.background} accent={accent} avoid={bodyRef} />
+        <DitherLayer background={preferences.background} style={preferences.ditherStyle} color={preferences.ditherColor} accent={accent} avoid={bodyRef} />
         <box ref={bodyRef} style={{ flexDirection: 'column', alignItems: 'center' }}>
           <TimerBody store={store} preferences={preferences} compact={compact} accent={accent} />
         </box>
@@ -739,6 +784,8 @@ export const App: React.FC<AppProps> = ({ initialScreen = 'timer' }) => {
       if (key === 'ringConcept') return { ...current, ringConcept: cycle(RING_CONCEPTS, current.ringConcept) };
       if (key === 'animation') return { ...current, animation: cycle(TIMER_ANIMATIONS, current.animation) };
       if (key === 'background') return { ...current, background: cycle(DITHER_BACKGROUNDS, current.background) };
+      if (key === 'ditherStyle') return { ...current, ditherStyle: cycle(DITHER_STYLES, current.ditherStyle) };
+      if (key === 'ditherColor') return { ...current, ditherColor: cycle(DITHER_COLORS, current.ditherColor) };
       return { ...current, reuseLastProject: !current.reuseLastProject };
     });
   };
