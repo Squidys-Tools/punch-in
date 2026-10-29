@@ -51,7 +51,7 @@ afterEach(() => {
 
 describe('uninstall', () => {
   test('removes the installed program while preserving data by default', () => {
-    const result = uninstall({ manifestFile });
+    const result = uninstall({ manifestFile, updatePath: false });
 
     expect(result.ok).toBe(true);
     expect(existsSync(executable)).toBe(false);
@@ -73,7 +73,7 @@ describe('uninstall', () => {
   });
 
   test('removes the configured data files after confirmation', () => {
-    const result = uninstall({ manifestFile, removeData: true, confirmed: true });
+    const result = uninstall({ manifestFile, removeData: true, confirmed: true, updatePath: false });
 
     expect(result.ok).toBe(true);
     expect(existsSync(executable)).toBe(false);

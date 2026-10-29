@@ -14,6 +14,7 @@ export interface UninstallOptions {
   removeData?: boolean;
   confirmed?: boolean;
   manifestFile?: string;
+  updatePath?: boolean;
 }
 
 export type DataFilesResult =
@@ -73,7 +74,11 @@ export function uninstall(options: UninstallOptions = {}): UninstallResult {
     return ok(`Punch is running from a source checkout. Remove the checkout manually.${dataMessage}`);
   }
 
-  const removedProgram = removeInstalledProgram(location.value, removeData ? dataFiles.files : []);
+  const removedProgram = removeInstalledProgram(
+    location.value,
+    removeData ? dataFiles.files : [],
+    options.updatePath ?? true,
+  );
   if (!removedProgram.ok) return removedProgram;
 
   const dataMessage = removeData
@@ -197,6 +202,7 @@ function removeFiles(files: readonly string[], kind: string): UninstallResult {
 function removeInstalledProgram(
   location: InstallManifestLocation,
   deferredFiles: readonly string[],
+  updatePath: boolean,
 ): UninstallResult {
   const files = [location.manifest.executable, location.file];
   const directories = installDirectoriesForRemoval(location.manifest.installDirectory);
@@ -220,7 +226,7 @@ function removeInstalledProgram(
     if (!removedDirectories.ok) return removedDirectories;
   }
 
-  removeUserPathEntry(location.manifest.installDirectory);
+  if (updatePath) removeUserPathEntry(location.manifest.installDirectory);
   return ok('');
 }
 
