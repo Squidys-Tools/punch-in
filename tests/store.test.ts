@@ -35,20 +35,11 @@ function makeSession(started: Date, ended: Date, project: string, durationSecs: 
 }
 
 describe('formatDuration', () => {
-  test('formats seconds only', () => {
-    expect(formatDuration(5)).toBe('5s');
-  });
-
-  test('formats minutes and seconds', () => {
-    expect(formatDuration(65)).toBe('1m 05s');
-  });
-
-  test('formats hours, minutes and seconds', () => {
-    expect(formatDuration(3661)).toBe('1h 01m 01s');
-  });
-
-  test('formats zero', () => {
+  test('pads minutes and seconds inside larger units', () => {
     expect(formatDuration(0)).toBe('0s');
+    expect(formatDuration(5)).toBe('5s');
+    expect(formatDuration(65)).toBe('1m 05s');
+    expect(formatDuration(3661)).toBe('1h 01m 01s');
   });
 });
 

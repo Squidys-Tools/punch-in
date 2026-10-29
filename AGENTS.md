@@ -55,8 +55,21 @@ Note on `--parallel`: Bun versions before 1.4.0 have a module-init race in the O
 
 - Tests live in `tests/*.test.ts` using `bun:test` (`describe/expect/test`).
 - Filesystem tests create a temp dir with `mkdtempSync` in `beforeEach` and clean it in `afterEach`; route file access through the exported `*Path` functions or `PUNCH_DATA`/`PUNCH_PREFERENCES` env overrides. Do not touch real user data paths.
-- OpenTUI rendering tests use `@opentui/react/test-utils` (`testRender`, `waitForFrame`); keep them deterministic (no real timers).
+- OpenTUI rendering tests use `@opentui/react/test-utils` (`testRender`, `waitForFrame`); keep them deterministic (no real timers beyond the stdin flush in `render.test.ts`).
 - New CLI commands need: command logic tests, `main.ts` dispatch + USAGE entry, and a README section.
+
+### What to test
+
+- Test behavior that can break: data-file persistence and durability (atomic writes, quarantine), file-format normalization, external-format parsing and generation (RFC3339 dates, CSV), destructive-path guards (uninstall confirmation, manifest validation), local-time day math, and the logic a bug fix changed.
+- Leave out tests for what types already guarantee, trivial logic, copy text and footer contents, constant-to-constant mirrors (a `toEqual` of a literal that duplicates the source table), key-to-handler wiring, and props rendered to static markup.
+- Extend before you add. When an existing test covers the behavior, add an assertion or a table row there. Write a new `test` only when no case fits.
+- Test at one layer: the lowest one that fails on `main`. If `commands.ts`/`store.ts` cover a rule, do not repeat it through the TUI; keep render tests for behavior that only exists in `views.tsx`.
+- Logic, data, and parsing bug fixes get a failing test first, then the fix. Purely visual fixes (spacing, alignment, glyph art) need no test.
+
+### Waiting for work
+
+- Assert on state and events, never on elapsed time. No `Date.now()`/`performance.now()` deltas, no wall-clock perf assertions, no per-test timeouts or retries.
+- In render tests, wait on `waitForFrame` predicates or the shared settle helper, not new sleeps. Flaky tests are fixed, not retried.
 
 ## Data files (do not break)
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { editSession, listDay, start, status, stop } from '../src/commands.js';
@@ -26,11 +26,13 @@ function readStore() {
 }
 
 describe('start', () => {
-  test('starts tracking general by default', () => {
+  test('starts tracking general by default and for blank input', () => {
     const result = start(null);
     expect(result.ok).toBe(true);
     expect(result.message).toBe("started tracking 'general'");
     expect(readStore().active?.project).toBe('general');
+    stop();
+    expect(start('  ').message).toBe("started tracking 'general'");
   });
 
   test('starts tracking a named project', () => {
@@ -38,10 +40,6 @@ describe('start', () => {
     expect(result.ok).toBe(true);
     expect(result.message).toBe("started tracking 'blog'");
     expect(readStore().active?.project).toBe('blog');
-  });
-
-  test('trims the project name and falls back to general for empty input', () => {
-    expect(start('  ').message).toBe("started tracking 'general'");
   });
 
   test('rejects a second session while one is running', () => {
@@ -83,15 +81,6 @@ describe('stop', () => {
     const result = stop();
     expect(result.ok).toBe(false);
     expect(result.message).toBe('no session is currently running');
-  });
-
-  test('writes a JSON file on disk', () => {
-    start('api');
-    stop();
-    const raw = readFileSync(dataFile, 'utf8');
-    const parsed = JSON.parse(raw);
-    expect(parsed.history).toHaveLength(1);
-    expect(parsed.history[0].project).toBe('api');
   });
 });
 
