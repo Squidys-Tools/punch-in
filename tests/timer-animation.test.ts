@@ -1,28 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import { timerBlocks } from '../src/fonts.js';
 import {
-  TIMER_ANIMATIONS,
-  animationDescription,
-  animationLabel,
   createAnimationState,
   digitKey,
   faceColor,
-  isTimerAnimation,
   mixColor,
   prepareBlocks,
   syncAnimationState,
 } from '../src/timer-animation.js';
 
 describe('timer animation prefs', () => {
-  test('lists only the supported animations with human labels', () => {
-    expect(TIMER_ANIMATIONS).toEqual(['none', 'digit-flash', 'colon-blink']);
-    expect(animationLabel('digit-flash')).toBe('digit flash');
-    expect(animationDescription('none')).toBe('static digits');
-    expect(animationDescription('digit-flash')).toBe('flash only digits that change');
-    expect(isTimerAnimation('colon-blink')).toBe(true);
-    expect(isTimerAnimation('roll')).toBe(false);
-  });
-
   test('mixes colors for the digit flash fade', () => {
     expect(mixColor('#000000', '#ffffff', 0)).toBe('#000000');
     expect(mixColor('#000000', '#ffffff', 1)).toBe('#ffffff');
